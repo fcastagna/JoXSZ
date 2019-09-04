@@ -1,0 +1,347 @@
+import sys
+import mbproj2 as mb
+from mbproj2.physconstants import keV_erg, kpc_cm, mu_g, G_cgs, solar_mass_g
+import numpy as np
+from abel.direct import direct_transform
+from scipy.interpolate import interp1d
+from scipy.signal import fftconvolve
+from scipy.fftpack import fft2, ifft2
+from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.pyplot as plt
+import corner
+
+class SZ_data:
+    """Dataset class."""
+
+    def __init__(self, radius, step, r_pp, sep, ub, kpc_as, phys_const, d_mat, 
+                 beam_2d, filtering, flux_data, convert, mass_const):
+   
+        self.radius = radius
+        self.r_pp = r_pp
+        self.step = step
+        self.sep = sep
+        self.ub = ub
+        self.kpc_as = kpc_as
+        self.phys_const = phys_const
+        self.d_mat = d_mat
+        self.beam_2d = beam_2d
+        self.filtering = filtering
+        self.flux_data = flux_data
+        self.convert = convert
+        self.mass_const = mass_const
+
+def getEdges(infg, bands):
+    """Get edges of annuli in arcmin.
+    There should be one more than the number of annuli.
+    """
+    data = np.loadtxt(infg % (bands[0][0], bands[0][1]))
+    return np.hstack((data[0,0] - data[0,1], data[:,0] + data[:,1]))
+
+def loadBand(infg, inbg, bandE, rmf, arf):
+    """Load foreground and background profiles from file and construct
+    Band object."""
+
+    data = np.loadtxt(infg % (bandE[0], bandE[1]))
+
+    # radii of centres of annuli in arcmin
+    radii = data[:,0]
+    # half-width of annuli in arcmin
+    hws = data[:,1]
+    # number of counts (integer)
+    cts = data[:,2]
+    # areas of annuli, taking account of pixelization (arcmin^2)
+    areas = data[:,3]
+    # exposures (s)
+    exps = data[:,4]
+    # note: vignetting can be input into exposure or areas, but
+    # background needs to be consistent
+
+    # geometric area factor
+    geomareas = np.pi * ((radii + hws)**2 - (radii - hws)**2)
+    # ratio between real pixel area and geometric area
+    areascales = areas / geomareas
+
+    # this is the band object fitted to the data
+    band = mb.Band(
+        bandE[0] / 1000, bandE[1] / 1000,
+        cts, rmf, arf, exps, areascales = areascales)
+
+    # this is the background profile
+    # load rates in cts/s/arcmin^2
+    backd = np.loadtxt(inbg % (bandE[0], bandE[1]))
+    # band.backrates = backd[:,5]
+    # to read, and shorter, a bkg file over a larger radial range
+    # e' in col5
+    band.backrates = backd[0:radii.size,4]
+    lastmyrad = backd[0:radii.size,0]
+    if (abs(lastmyrad[-1] - radii[-1]) > .001):
+         print('Problem while reading bg file', lastmyrad[-1], radii[-1])
+         sys.exit()
+
+    return band
+
+class CmptPressure(mb.Cmpt):
+
+    def __init__(self, name, annuli):
+        mb.Cmpt.__init__(self, name, annuli)
+
+    def defPars(self):
+        pars = {
+            'P_0': mb.Param(0.4, minval=0, maxval=20),
+            'a': mb.Param(1.33, minval=0.1, maxval=10),
+            'b': mb.Param(4.13, minval=0.1, maxval=15),
+            'c': mb.Param(0.014, minval=0, maxval=3),
+            'r_p': mb.Param(500, minval=5, maxval=3000)
+            }
+        return pars
+
+    def press_fun(self, pars, r_kpc):
+        P_0 = pars['P_0'].val
+        r_p = pars['r_p'].val
+        a = pars['a'].val
+        b = pars['b'].val
+        c = pars['c'].val
+        return P_0/((r_kpc/r_p)**c*(1+(r_kpc/r_p)**a)**((b-c)/a))
+
+    def press_derivative(self, pars, r_kpc):
+        P0 = pars['P0'].val
+        r_p = pars['r_p'].val
+        a = pars['a'].val
+        b = pars['b'].val
+        c = pars['c'].val
+        return -P0*(c+b*(r_kpc/r_p)**a)/(
+                r_p*(r_kpc/r_p)**(c+1)*(1+(r_kpc/r_p)**a)**((b-c+a)/a))
+
+    def computeProf(self, pars):
+        return self.press_fun(pars, self.annuli.midpt_kpc)
+
+class CmptUPPTemperature(mb.Cmpt):
+    
+    def __init__(self, name, annuli, press_prof, ne_prof):
+        mb.Cmpt.__init__(self, name, annuli)
+        self.press_prof = press_prof
+        self.ne_prof = ne_prof
+
+    def defPars(self):
+        pars = self.press_prof.defPars()
+        pars.update(self.ne_prof.defPars())
+        return pars
+    
+    def temp_fun(self, pars, r_kpc):
+        pr = self.press_prof.press_fun(pars, r_kpc)
+        ne = self.ne_prof.vikhFunction(pars, r_kpc)
+        return pr/ne
+
+    def computeProf(self, pars):
+        return self.temp_fun(pars, self.annuli.midpt_kpc)
+
+class CmptMyMass(mb.Cmpt):
+    
+    def __init__(self, name, annuli, press_prof, ne_prof):
+        mb.Cmpt.__init__(self, name, annuli)
+        self.press_prof = press_prof
+        self.ne_prof = ne_prof
+
+    def defPars(self):
+        pars = self.press_prof.defPars()
+        pars.update(self.ne_prof.defPars())
+        return pars
+    
+    def mass_fun(self, pars, r_kpc, mu_gas=0.61):
+        dpr_kpc = self.press_prof.press_derivative(pars, r_kpc)
+        dpr_cm = dpr_kpc*keV_erg/kpc_cm
+        ne = self.ne_prof.vikhFunction(pars, r_kpc)
+        r_cm = r_kpc*kpc_cm
+        return -dpr_cm*r_cm**2/(mu_gas*mu_g*ne*G_cgs)/solar_mass_g
+    
+    def computeProf(self, pars):
+        return self.mass_fun(pars, self.annuli.midpt_kpc)
+
+def get_sz_like(self, output='ll'):
+    pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
+    ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', 
+                          backend='Python')[:self.data.sz.ub]
+    y = (self.data.sz.phys_const[2]*self.data.sz.phys_const[1]/
+         self.data.sz.phys_const[0]*ab)
+    f = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
+                 np.append(y, y), 'cubic', bounds_error=False, fill_value=(0, 0))
+    y_2d = f(self.data.sz.d_mat) 
+    conv_2d = fftconvolve(y_2d, self.data.sz.beam_2d, 'same')*self.data.sz.step**2
+    FT_map_in = fft2(conv_2d)
+    map_out = np.real(ifft2(FT_map_in*self.data.sz.filtering))
+    t_conv = self.model.T_cmpt.temp_fun(self.pars, self.data.sz.r_pp[:self.data.sz.ub])
+    map_prof = map_out[conv_2d.shape[0]//2, conv_2d.shape[0]//2+1:]*self.data.sz.convert(t_conv)
+    g = interp1d(self.data.sz.radius[self.data.sz.sep:], map_prof, 'cubic', fill_value='extrapolate')
+    chisq = np.sum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/
+                    self.data.sz.flux_data[2])**2)
+    log_lik = -chisq/2
+    if output == 'll':
+        return log_lik
+    elif output == 'chisq':
+        return chisq
+    elif output == 'pp':
+        return pp
+    elif output == 'flux':
+        return map_prof
+
+def getLikelihood(self, vals=None):
+    """Get likelihood for parameters given.
+
+    Also include are the priors from the various components
+    """
+
+    if vals is not None:
+        self.updateThawed(vals)
+
+    # prior on parameters
+    parprior = sum( (self.pars[p].prior() for p in self.pars) )
+    if not np.isfinite(parprior):
+        # don't want to evaluate profiles for invalid parameters
+        return -np.inf
+
+    m_prof = self.mass_cmpt.mass_fun(self.pars, self.data.sz.r_pp) 
+    if not(all(np.gradient(m_prof, 1) > 0)):
+        return -np.inf
+
+    profs = self.calcProfiles()
+    like = self.likeFromProfs(profs)
+    prior = self.model.prior(self.pars) + parprior
+    sz_like = self.get_sz_like()
+    totlike = float(like + prior + sz_like)
+
+    if mb.fit.debugfit and (totlike-self.bestlike) > 0.1:
+        self.bestlike = totlike
+        #print("Better fit %.1f" % totlike)
+        with mb.utils.AtomicWriteFile("fit.dat") as fout:
+            mb.utils.uprint(
+                "likelihood = %g + %g = %g" % (like, prior, totlike),
+                file=fout)
+            for p in sorted(self.pars):
+                mb.utils.uprint("%s = %s" % (p, self.pars[p]), file=fout)
+
+    return totlike
+
+def prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir):
+    pdf = PdfPages(plotdir+'prelimfit.pdf')
+    for i, (band, prof) in enumerate(zip(data.bands, myprofs)):
+        plt.subplot(2, 3, i+1)
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.axis([0.08, 1.2*xfig.max(), 1, 2*(band.cts/geomareas/
+                  band.areascales).max()])
+        plt.xlabel('r [arcmin]')
+        plt.ylabel('counts / area [cts arcmin$^{-2}$]')
+        #plt.title('[ %g - %g] keV' % (band.emin_keV, band.emax_keV))
+        plt.text(0.1, 1.2, '[%g-%g] keV' % (band.emin_keV, band.emax_keV))
+        plt.plot(xfig, myprofs[i]/geomareas/band.areascales, color='r')
+        plt.plot(xfig, band.backrates*band.exposures, linestyle=':', color='b')
+        plt.scatter(xfig, band.cts/geomareas/band.areascales, color='darkblue')
+        plt.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
+                     yerr=band.cts**0.5/geomareas/band.areascales, fmt='o')
+    plt.subplots_adjust(wspace=0.45, hspace=0.35)	
+    pdf.savefig()
+    pdf.close()
+    plt.clf()
+
+def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, plotdir='./'):
+    '''
+    Traceplot of the MCMC
+    ---------------------
+    mysamples = array of sampled values in the chain
+    param_names = names of the parameters
+    nsteps = number of steps in the chain (after burn-in) 
+    nw = number of random walkers
+    plotw = number of random walkers that we wanna plot (default is 20)
+    ppp = number of plots per page
+    plotdir = directory where to place the plot
+    '''
+    nw_step = int(np.ceil(nw/plotw))
+    param_latex = ['${}$'.format(i) for i in param_names]
+    pdf = PdfPages(plotdir+'traceplot.pdf')
+    for i in np.arange(mysamples.shape[1]):
+        plt.subplot(ppp, 1, i%ppp+1)
+        for j in range(nw)[::nw_step]:
+            plt.plot(np.arange(nsteps)+1, mysamples[j::nw,i], linewidth=.2)
+            plt.tick_params(labelbottom=False)
+        plt.ylabel('%s' %param_latex[i], fontdict={'fontsize': 20})
+        if (abs((i+1)%ppp) < 0.01):
+            plt.tick_params(labelbottom=True)
+            plt.xlabel('Iteration number')
+            pdf.savefig()
+            if i+1 < mysamples.shape[1]:
+                plt.clf()
+        elif i+1 == mysamples.shape[1]:
+            plt.xlabel('Iteration number')
+            pdf.savefig()
+    pdf.close()
+
+def triangle(mysamples, param_names, plotdir='./'):
+    '''
+    Univariate and multivariate distribution of the parameters in the MCMC
+    ----------------------------------------------------------------------
+    mysamples = array of sampled values in the chain
+    param_names = names of the parameters
+    plotdir = directory where to place the plot
+    '''
+    param_latex = ['${}$'.format(i) for i in param_names]
+    plt.clf()
+    pdf = PdfPages(plotdir+'cornerplot.pdf')
+    corner.corner(mysamples, labels=param_latex, quantiles=np.repeat(.5, len(param_latex)), show_titles=True, 
+                  title_kwargs={'fontsize': 20}, label_kwargs={'fontsize': 30})
+    pdf.savefig()
+    pdf.close()
+
+def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, plotdir):
+    plt.clf()
+    pdf = PdfPages(plotdir+'fitwithmod.pdf')
+    for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
+        plt.subplot(2, 3, i+1)
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.axis([0.08, 1.2*xfig.max(), 1, 1.2*
+                  (hhi/geomareas/band.areascales).max()])
+        plt.xlabel('r [arcmin]')
+        plt.ylabel('counts / area [cts arcmin$^{-2}$]')
+        plt.text(0.1, 1.2, '[%g-%g] keV' % (band.emin_keV, band.emax_keV))	
+        plt.errorbar(xfig, mmed/geomareas/band.areascales, color='red')	
+        plt.fill_between(xfig, hhi /geomareas/band.areascales, 
+                         llo/geomareas/band.areascales, color='gold')
+        plt.plot(xfig, band.backrates*band.exposures, linestyle=':', color='b')
+        plt.scatter(xfig, band.cts/geomareas/band.areascales, color='darkblue')
+        plt.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
+                     yerr=band.cts**0.5/geomareas/band.areascales, fmt='o')
+    plt.subplots_adjust(wspace=0.45, hspace=0.35)	
+    pdf.savefig()
+    pdf.close()
+
+def best_fit_xsz(sz, chain, fit, ci, plotdir):
+    profs = []
+    for pars in chain[::10]:
+        fit.updateThawed(pars)
+        out_prof = fit.get_sz_like(output='map_prof')
+        profs.append(out_prof)
+    profs = np.row_stack(profs)
+    med = np.median(profs, axis=0)
+    lo, hi = np.percentile(profs, [50-ci/2, 50+ci/2], axis=0)
+    return med, lo, hi
+
+def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir):
+    sep = sz.radius.size//2
+    pdf = PdfPages(plotdir + 'best_sz.pdf')
+    plt.clf()
+    plt.title('Compton parameter profile - best fit with %s' % ci + '% CI')
+    plt.plot(sz.radius[sep:sep + med_xz.size], med_xz, color = 'b')
+    plt.plot(sz.radius[sep:sep + med_xz.size], lo_xz, ':', color = 'b', 
+             label = '_nolegend_')
+    plt.plot(sz.radius[sep:sep + med_xz.size], hi_xz, ':', color = 'b',
+             label = '_nolegend_')
+    plt.scatter(sz.flux_data[0], sz.flux_data[1], color = 'black')
+    plt.errorbar(sz.flux_data[0], sz.flux_data[1], yerr = sz.flux_data[2], 
+                 fmt = 'o', markersize = 4, color = 'black')
+    plt.axhline(0, linestyle = ':', color = 'black', label = '_nolegend_')
+    plt.xlabel('Radius (arcsec)')
+    plt.ylabel('y * 10$^{4}$')
+    plt.xlim(-2, 127)
+    plt.legend(('(SZ + X) fit', 'SZ data'), loc = 'lower right')
+    pdf.savefig()
+    pdf.close()
