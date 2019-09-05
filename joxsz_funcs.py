@@ -285,6 +285,33 @@ def mydefPars(self):
         }
     return pars
 
+def myvikhFunction(self, pars, radii_kpc):
+    n_0 = 10**pars['n_0'].val
+    beta = pars['beta'].val
+    r_c = 10**pars['log(r_c)'].val
+    r_s = 10**pars['log(r_s)'].val
+    alpha = pars['alpha'].val
+    epsilon = pars['epsilon'].val
+    gamma = pars['gamma'].val
+
+    r = radii_kpc
+
+    retn_sqd = (
+        n_0**2 *
+        (r/r_c)**(-alpha) / (
+            (1+r**2/r_c**2)**(3*beta-0.5*alpha) *
+            (1+(r/r_s)**gamma)**(epsilon/gamma)
+            )
+        )
+    if self.mode == 'double':
+        n_02 = 10**pars['n_{02}'].val
+        r_c2 = 10**pars['log(r_{c2})'].val
+        beta_2 = pars['beta_2'].val
+
+        retn_sqd += n_02**2 / (1 + r**2/r_c2**2)**(3*beta_2)
+
+    return np.sqrt(retn_sqd)
+
 def get_sz_like(self, output='ll'):
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
     ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', 
