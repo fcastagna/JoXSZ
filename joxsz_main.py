@@ -80,9 +80,9 @@ arf = '.%s/source.arf' %files_x_dir
 
 # filename template (to fill in energies)
 # foreground profile
-infgtempl = '.%s/fg_prof_%04i_%04i.dat' %files_x_dir
+infgtempl = files_x_dir+'/fg_prof_%04i_%04i.dat'
 # background profile
-inbgtempl = '.%s/bg_prof_%04i_%04i.dat' %files_x_dir
+inbgtempl = files_x_dir+'/bg_prof_%04i_%04i.dat'
 
 # name for outputs
 name = 'fit_modified_beta_nonhydro'
