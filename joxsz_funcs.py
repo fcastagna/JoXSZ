@@ -154,7 +154,7 @@ def getEdges(infg, bands):
     There should be one more than the number of annuli.
     """
     data = np.loadtxt(infg % (bands[0][0], bands[0][1]))
-    return np.hstack((data[0,0] - data[0,1], data[:,0] + data[:,1]))
+    return np.hstack((data[0,0]-data[0,1], data[:,0]+data[:,1]))
 
 def loadBand(infg, inbg, bandE, rmf, arf):
     """Load foreground and background profiles from file and construct
@@ -176,14 +176,12 @@ def loadBand(infg, inbg, bandE, rmf, arf):
     # background needs to be consistent
 
     # geometric area factor
-    geomareas = np.pi * ((radii + hws)**2 - (radii - hws)**2)
+    geomareas = np.pi*((radii+hws)**2-(radii-hws)**2)
     # ratio between real pixel area and geometric area
-    areascales = areas / geomareas
+    areascales = areas/geomareas
 
     # this is the band object fitted to the data
-    band = mb.Band(
-        bandE[0] / 1000, bandE[1] / 1000,
-        cts, rmf, arf, exps, areascales = areascales)
+    band = mb.Band(bandE[0]/1000, bandE[1]/1000, cts, rmf, arf, exps, areascales=areascales)
 
     # this is the background profile
     # load rates in cts/s/arcmin^2
@@ -191,12 +189,11 @@ def loadBand(infg, inbg, bandE, rmf, arf):
     # band.backrates = backd[:,5]
     # to read, and shorter, a bkg file over a larger radial range
     # e' in col5
-    band.backrates = backd[0:radii.size,4]
-    lastmyrad = backd[0:radii.size,0]
-    if (abs(lastmyrad[-1] - radii[-1]) > .001):
+    band.backrates = backd[0:radii.size, 4]
+    lastmyrad = backd[0:radii.size, 0]
+    if (abs(lastmyrad[-1]-radii[-1]) > .001):
          print('Problem while reading bg file', lastmyrad[-1], radii[-1])
          sys.exit()
-
     return band
 
 class CmptPressure(mb.Cmpt):
@@ -312,7 +309,7 @@ def getLikelihood(self, vals=None):
         self.updateThawed(vals)
 
     # prior on parameters
-    parprior = sum( (self.pars[p].prior() for p in self.pars) )
+    parprior = sum((self.pars[p].prior() for p in self.pars))
     if not np.isfinite(parprior):
         # don't want to evaluate profiles for invalid parameters
         return -np.inf
@@ -323,17 +320,15 @@ def getLikelihood(self, vals=None):
 
     profs = self.calcProfiles()
     like = self.likeFromProfs(profs)
-    prior = self.model.prior(self.pars) + parprior
+    prior = self.model.prior(self.pars)+parprior
     sz_like = self.get_sz_like()
-    totlike = float(like + prior + sz_like)
+    totlike = float(like+prior+sz_like)
 
     if mb.fit.debugfit and (totlike-self.bestlike) > 0.1:
         self.bestlike = totlike
         #print("Better fit %.1f" % totlike)
-        with mb.utils.AtomicWriteFile("fit.dat") as fout:
-            mb.utils.uprint(
-                "likelihood = %g + %g = %g" % (like, prior, totlike),
-                file=fout)
+        with mb.utils.AtomicWriteFile("%s/fit.dat" % self.savedir) as fout:
+            mb.utils.uprint("likelihood = %g + %g = %g" % (like, prior, totlike), file=fout)
             for p in sorted(self.pars):
                 mb.utils.uprint("%s = %s" % (p, self.pars[p]), file=fout)
 
@@ -416,14 +411,12 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, plotdir):
         plt.subplot(2, 3, i+1)
         plt.xscale('log')
         plt.yscale('log')
-        plt.axis([0.08, 1.2*xfig.max(), 1, 1.2*
-                  (hhi/geomareas/band.areascales).max()])
+        plt.axis([0.08, 1.2*xfig.max(), 1, 1.2*(hhi/geomareas/band.areascales).max()])
         plt.xlabel('r [arcmin]')
         plt.ylabel('counts / area [cts arcmin$^{-2}$]')
         plt.text(0.1, 1.2, '[%g-%g] keV' % (band.emin_keV, band.emax_keV))	
         plt.errorbar(xfig, mmed/geomareas/band.areascales, color='red')	
-        plt.fill_between(xfig, hhi /geomareas/band.areascales, 
-                         llo/geomareas/band.areascales, color='gold')
+        plt.fill_between(xfig, hhi /geomareas/band.areascales, llo/geomareas/band.areascales, color='gold')
         plt.plot(xfig, band.backrates*band.exposures, linestyle=':', color='b')
         plt.scatter(xfig, band.cts/geomareas/band.areascales, color='darkblue')
         plt.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
@@ -445,21 +438,18 @@ def best_fit_xsz(sz, chain, fit, ci, plotdir):
 
 def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir):
     sep = sz.radius.size//2
-    pdf = PdfPages(plotdir + 'best_sz.pdf')
+    pdf = PdfPages(plotdir+'best_sz.pdf')
     plt.clf()
-    plt.title('Compton parameter profile - best fit with %s' % ci + '% CI')
-    plt.plot(sz.radius[sep:sep + med_xz.size], med_xz, color = 'b')
-    plt.plot(sz.radius[sep:sep + med_xz.size], lo_xz, ':', color = 'b', 
-             label = '_nolegend_')
-    plt.plot(sz.radius[sep:sep + med_xz.size], hi_xz, ':', color = 'b',
-             label = '_nolegend_')
-    plt.scatter(sz.flux_data[0], sz.flux_data[1], color = 'black')
-    plt.errorbar(sz.flux_data[0], sz.flux_data[1], yerr = sz.flux_data[2], 
-                 fmt = 'o', markersize = 4, color = 'black')
-    plt.axhline(0, linestyle = ':', color = 'black', label = '_nolegend_')
+    plt.title('Compton parameter profile - best fit with %s' % ci+'% CI')
+    plt.plot(sz.radius[sep:sep+med_xz.size], med_xz, color='b')
+    plt.plot(sz.radius[sep:sep+med_xz.size], lo_xz, ':', color='b', label='_nolegend_')
+    plt.plot(sz.radius[sep:sep+med_xz.size], hi_xz, ':', color='b', label='_nolegend_')
+    plt.scatter(sz.flux_data[0], sz.flux_data[1], color='black')
+    plt.errorbar(sz.flux_data[0], sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=4, color='black')
+    plt.axhline(0, linestyle=':', color='black', label='_nolegend_')
     plt.xlabel('Radius (arcsec)')
     plt.ylabel('y * 10$^{4}$')
     plt.xlim(-2, 127)
-    plt.legend(('(SZ + X) fit', 'SZ data'), loc = 'lower right')
+    plt.legend(('(SZ + X) fit', 'SZ data'), loc='lower right')
     pdf.savefig()
     pdf.close()
