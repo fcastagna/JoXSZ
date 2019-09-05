@@ -9,51 +9,80 @@
 #from __future__ import division, print_function
 
 import six.moves.cPickle as pickle
-
 import numpy as np
-
 import mbproj2 as mb
-from joxsz_funcs import (SZ_data, getEdges, loadBand, CmptPressure, 
-                         CmptUPPTemperature, CmptMyMass, get_sz_like, 
-                         getLikelihood, prelimfit, traceplot, triangle, 
+from scipy.interpolate import interp1d
+from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, 
+                         filt_image, getEdges, loadBand, CmptPressure,
+                         CmptUPPTemperature, CmptMyMass, get_sz_like,
+                         getLikelihood, prelimfit, traceplot, triangle,
                          fitwithmod, best_fit_xsz, plot_best_sz)
-from preprofit_main import (radius, r_pp, mystep, sep, ub, kpc_as, phys_const, 
-                            d_mat, beam_2d, filtering, flux_data, convert, 
-                            cosmology)
 
+#################
+# SZ
+m_e = 0.5109989*1e3 # electron rest mass (keV)
+sigma_T = 6.6524587158*1e-25 # Thomson cross section (cm^2)
+phys_const = [m_e, sigma_T]
+mystep = 2. # constant step in arcsec (values higher than (1/3)*FWHM of the beam are not recommended)
+redshift = 0.888
+cosmology = mb.Cosmology(redshift)
+cosmology.H0 = 67.32 # Hubble's constant (km/s/Mpc)
+cosmology.WM = 0.3158 # matter density
+cosmology.WV = 0.6842 # vacuum density
+kpc_as = cosmology.kpc_per_arcsec # number of kpc per arcsec
+files_sz_dir = './data/SZ' # SZ data directory
+beam_filename = '%s/Beam150GHz.fits' %files_sz_dir
+tf_filename = '%s/TransferFunction150GHz_CLJ1227.fits' %files_sz_dir
+flux_filename = '%s/flux_density.dat' %files_sz_dir 
+convert_filename = '%s/Jy_per_beam_to_Compton.dat' %files_sz_dir
+t_keV, compt_Jy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True)
+convert = interp1d(t_keV, compt_Jy_beam*1e3, 'linear', fill_value='extrapolate')
+R_b = 5000 # Radial cluster extent (kpc), serves as upper bound for Compton y parameter integration
+beam_approx = False
+tf_approx = False
+fwhm_beam = None # fwhm of the normal distribution for the beam approximation
+loc, scale, c = None, None, None # location, scale and normalization parameters of the normal cdf for the tf approximation
+flux_data = read_xy_err(flux_filename, ncol=3) # radius (arcsec), flux density, statistical error
+maxr_data = flux_data[0][-1] # highest radius in the data
+beam_2d, fwhm_beam = mybeam(mystep, maxr_data, approx=beam_approx, filename=beam_filename, normalize=True, fwhm_beam=fwhm_beam)
+mymaxr = (maxr_data+3*fwhm_beam)//mystep*mystep # max radius needed (arcsec)
+radius = np.arange(0, mymaxr+mystep, mystep) # array of radii in arcsec
+radius = np.append(-radius[:0:-1], radius) # from positive to entire axis
+sep = radius.size//2 # index of radius 0
+r_pp = np.arange(mystep*kpc_as, R_b+mystep*kpc_as, mystep*kpc_as) # radius in kpc used to compute the pressure profile
+ub = min(sep, r_pp.size) # ub=sep unless r500 is too low and then r_pp.size < sep
+d_mat = centdistmat(radius*kpc_as)
+wn_as, tf = read_tf(tf_filename, approx=tf_approx, loc=loc, scale=scale, c=c) # wave number in arcsec^(-1), transmission
+filtering = filt_image(wn_as, tf, d_mat.shape[0], mystep)
+sz_data = SZ_data(radius, r_pp, mystep, sep, ub, kpc_as, phys_const, d_mat, beam_2d, 
+                  filtering, flux_data, convert, mb.physconstants)
+#################
 #remove cache
 mb.xspechelper.deleteFile('countrate_cache.hdf5')
-
+#################
 # MCMC parameters
+nburn = 2000 # number to burn
+nlength = 2000 # length of chain
+nwalkers = 20 # number of walkers
+nthreads = 8 # number of processes/threads
 #################
-# number to burn
-nburn = 2000
-# length of chain
-nlength = 2000
-# number of walkers
-nwalkers = 20
-# number of processes/threads
-nthreads = 8
-#################
-
 # energy bands in eV
 bandEs = [[700,1000], [1000,2000], [2000,3000], [3000,5000], [5000,7000]]
-
 # cluster parameters
 NH_1022pcm2 = .01830000000000000000 # absorbing column density in 10^22 cm^(-2) 
 Z_solar = 0.3
 
 # response
 # Chandra
-rmf = './data/source.rmf'
-arf = './data/source.arf'
-clusname = 'SPT-CLJ1226+3332'
+files_x_dir = './data/X' # X-ray data directory
+rmf = '%s/source.rmf' %files_x_dir
+arf = '.%s/source.arf' %files_x_dir
 
 # filename template (to fill in energies)
 # foreground profile
-infgtempl = './data/fg_prof_%04i_%04i.dat'
+infgtempl = '.%s/fg_prof_%04i_%04i.dat' %files_x_dir
 # background profile
-inbgtempl = './data/bg_prof_%04i_%04i.dat'
+inbgtempl = '.%s/bg_prof_%04i_%04i.dat' %files_x_dir
 
 # name for outputs
 name = 'fit_modified_beta_nonhydro'
@@ -64,9 +93,6 @@ savedir = './save/'
 
 # Confidence interval
 ci = 95
-
-sz_data = SZ_data(radius, r_pp, mystep, sep, ub, kpc_as, phys_const, d_mat, beam_2d, 
-                  filtering, flux_data, convert, mb.physconstants)
     
 # for calculating distances, etc.
 #cosmology = mb.Cosmology(redshift)
