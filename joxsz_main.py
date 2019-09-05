@@ -76,7 +76,7 @@ Z_solar = 0.3
 # Chandra
 files_x_dir = './data/X' # X-ray data directory
 rmf = '%s/source.rmf' %files_x_dir
-arf = '.%s/source.arf' %files_x_dir
+arf = '%s/source.arf' %files_x_dir
 
 # filename template (to fill in energies)
 # foreground profile
