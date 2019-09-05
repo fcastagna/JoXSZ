@@ -1,9 +1,0 @@
-mbproj2
-PyAbel
-numpy
-scipy
-astropy
-emcee
-six
-matplotlib
-corner
