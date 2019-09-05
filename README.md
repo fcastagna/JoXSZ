@@ -7,7 +7,7 @@
 
 As an example, we show the application of `JoXSZ` on the high-redshift cluster of galaxies CL J1226.9+3332 (z = 0.89).
 
-Beam data and transfer function data come from the NIKA data release (http://lpsc.in2p3.fr/NIKA2LPSZ/nika2sz.release.php), while X-ray data come from (...)
+Beam data and transfer function data come from the NIKA data release (http://lpsc.in2p3.fr/NIKA2LPSZ/nika2sz.release.php), while X-ray data come from Chandra.
 
 ### Requirements
 `preprofit` requires the following:
