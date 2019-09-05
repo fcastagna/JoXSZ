@@ -1,7 +1,10 @@
 import sys
+from astropy.io import fits
+import numpy as np
+from scipy import optimize
+from scipy.stats import norm
 import mbproj2 as mb
 from mbproj2.physconstants import keV_erg, kpc_cm, mu_g, G_cgs, solar_mass_g
-import numpy as np
 from abel.direct import direct_transform
 from scipy.interpolate import interp1d
 from scipy.signal import fftconvolve
@@ -29,6 +32,123 @@ class SZ_data:
         self.flux_data = flux_data
         self.convert = convert
         self.mass_const = mass_const
+
+def read_xy_err(filename, ncol):
+    '''
+    Read the data from FITS or ASCII file
+    -------------------------------------
+    ncol = number of columns to read
+    '''
+    if filename[filename.find('.', -5)+1:] == 'fits':
+        data = fits.open(filename)[''].data[0]
+    elif filename[filename.find('.', -5)+1:] in ('txt', 'dat'):
+        data = np.loadtxt(filename, unpack=True)
+    else:
+        raise RuntimeError('Unrecognised file extension (not in fits, dat, txt)')
+    return data[:ncol]
+
+def centdistmat(r, offset=0.):
+    '''
+    Create a symmetric matrix of distances from the radius vector
+    -------------------------------------------------------------
+    r = vector of negative and positive distances with a given step (center value has to be 0)
+    offset = value to be added to every distance in the matrix (default is 0)
+    ---------------------------------------------
+    RETURN: the matrix of distances centered on 0
+    '''
+    x, y = np.meshgrid(r, r)
+    return np.sqrt(x**2+y**2)+offset
+
+def read_beam(filename):
+    '''
+    Read the beam data from the specified file up to the first negative or nan value
+    --------------------------------------------------------------------------------
+    '''
+    radius, beam_prof = read_xy_err(filename, ncol=2)
+    if np.isnan(beam_prof).sum() > 0:
+        first_nan = np.where(np.isnan(beam_prof))[0][0]
+        radius = radius[:first_nan]
+        beam_prof = beam_prof[:first_nan]
+    if beam_prof.min() < 0:
+        first_neg = np.where(beam_prof < 0)[0][0]
+        radius = radius[:first_neg]
+        beam_prof = beam_prof[:first_neg]
+    return radius, beam_prof
+
+def mybeam(step, maxr_data, approx=False, filename=None, normalize=True, fwhm_beam=None):
+    '''
+    Set the 2D image of the beam, alternatively from file data or from a normal distribution with given FWHM
+    --------------------------------------------------------------------------------------------------------
+    step = binning step
+    maxr_data = highest radius in the data
+    approx = whether to approximate or not the beam to the normal distribution (True/False)
+    filename = name of the file including the beam data
+    normalize = whether to normalize or not the output 2D image (True/False)
+    fwhm_beam = Full Width at Half Maximum
+    -------------------------------------------------------------------
+    RETURN: the 2D image of the beam and his Full Width at Half Maximum
+    '''
+    if not approx:
+        r_irreg, b = read_beam(filename)
+        f = interp1d(np.append(-r_irreg, r_irreg), np.append(b, b), 'cubic', bounds_error=False, fill_value=(0, 0))
+        inv_f = lambda x: f(x)-f(0)/2
+        fwhm_beam = 2*optimize.newton(inv_f, x0=5) 
+    maxr = (maxr_data+3*fwhm_beam)//step*step
+    rad = np.arange(0, maxr+step, step)
+    rad = np.append(-rad[:0:-1], rad)
+    rad_cut = rad[np.where(abs(rad) <= 3*fwhm_beam)]
+    beam_mat = centdistmat(rad_cut)
+    if approx:
+        sigma_beam = fwhm_beam/(2*np.sqrt(2*np.log(2)))
+        beam_2d = norm.pdf(beam_mat, loc=0., scale=sigma_beam)
+    else:
+        beam_2d = f(beam_mat)
+    if normalize:
+        beam_2d /= beam_2d.sum()*step**2
+    return beam_2d, fwhm_beam
+
+def read_tf(filename, approx=False, loc=0, scale=0.02, c=0.95):
+    '''
+    Read the transfer function data from the specified file
+    -------------------------------------------------------
+    approx = whether to approximate or not the tf to the normal cdf (True/False)
+    loc, scale, c = location, scale and normalization parameters for the normal cdf approximation
+    ---------------------------------------------------------------------------------------------
+    RETURN: the vectors of wave numbers and transmission values
+    '''
+    wn, tf = read_xy_err(filename, ncol=2) # wave number, transmission
+    if approx:
+        tf = c*norm.cdf(wn, loc, scale)
+    return wn, tf
+
+def dist(naxis):
+    '''
+    Returns a symmetric matrix in which the value of each element is proportional to its frequency 
+    (https://www.harrisgeospatial.com/docs/DIST.html)
+    ----------------------------------------------------------------------------------------------
+    naxis = number of elements per row and per column
+    -------------------------------------------------
+    RETURN: the (naxis x naxis) matrix
+    '''
+    axis = np.linspace(-naxis//2+1, naxis//2, naxis)
+    result = np.sqrt(axis**2+axis[:,np.newaxis]**2)
+    return np.roll(result, naxis//2+1, axis=(0, 1))
+
+def filt_image(wn_as, tf, side, step):
+    '''
+    Create the 2D filtering image from the transfer function data
+    -------------------------------------------------------------
+    wn_as = vector of wave numbers in arcsec
+    tf = transmission data
+    side = one side length for the output image
+    step = binning step
+    -------------------------------
+    RETURN: the (side x side) image
+    '''
+    f = interp1d(wn_as, tf, bounds_error=False, fill_value=tuple([tf[0], tf[-1]])) # tf interpolation
+    kmax = 1/step
+    karr = dist(side)/side*kmax
+    return f(np.rot90(np.rot90(karr)))
 
 def getEdges(infg, bands):
     """Get edges of annuli in arcmin.
@@ -161,8 +281,7 @@ def get_sz_like(self, output='ll'):
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
     ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', 
                           backend='Python')[:self.data.sz.ub]
-    y = (self.data.sz.phys_const[2]*self.data.sz.phys_const[1]/
-         self.data.sz.phys_const[0]*ab)
+    y = (kpc_cm*self.data.sz.phys_const[1]/self.data.sz.phys_const[0]*ab)
     f = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
                  np.append(y, y), 'cubic', bounds_error=False, fill_value=(0, 0))
     y_2d = f(self.data.sz.d_mat) 
