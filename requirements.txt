@@ -1,0 +1,9 @@
+mbproj2
+PyAbel
+numpy
+scipy
+astropy
+six
+types
+matplotlib
+corner
