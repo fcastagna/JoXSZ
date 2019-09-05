@@ -276,7 +276,7 @@ class CmptMyMass(mb.Cmpt):
 def mydefPars(self):
     pars = {
         'n_0': mb.Param(-3., minval=-7., maxval=2.),
-        'beta_1': mb.Param(2/3., minval=0., maxval=4.),
+        'beta': mb.Param(2/3., minval=0., maxval=4.),
         'log(r_c)': mb.Param(2.3, minval=-1., maxval=3.7),
         'log(r_s)': mb.Param(2.7, minval=0, maxval=3.7),
         'alpha': mb.Param(0., minval=-1, maxval=2.),
