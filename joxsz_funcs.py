@@ -312,6 +312,13 @@ def myvikhFunction(self, pars, radii_kpc):
 
     return np.sqrt(retn_sqd)
 
+def myprior(self, pars):
+    r_c = 10**pars['log(r_c)'].val
+    r_s = 10**pars['log(r_s)'].val
+    if r_c > r_s:
+        return -np.inf
+    return 0
+
 def get_sz_like(self, output='ll'):
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
     ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', 
