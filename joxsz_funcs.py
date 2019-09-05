@@ -273,6 +273,18 @@ class CmptMyMass(mb.Cmpt):
     def computeProf(self, pars):
         return self.mass_fun(pars, self.annuli.midpt_kpc)
 
+def mydefPars(self):
+    pars = {
+        'n_0': mb.Param(-3., minval=-7., maxval=2.),
+        'beta_1': mb.Param(2/3., minval=0., maxval=4.),
+        'log(r_c)': mb.Param(2.3, minval=-1., maxval=3.7),
+        'log(r_s)': mb.Param(2.7, minval=0, maxval=3.7),
+        'alpha': mb.Param(0., minval=-1, maxval=2.),
+        'epsilon': mb.Param(3., minval=0., maxval=5.),
+        'gamma': mb.Param(3., minval=0., maxval=10, frozen=True),
+        }
+    return pars
+
 def get_sz_like(self, output='ll'):
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
     ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', 
