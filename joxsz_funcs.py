@@ -331,7 +331,9 @@ def get_sz_like(self, output='ll'):
     FT_map_in = fft2(conv_2d)
     map_out = np.real(ifft2(FT_map_in*self.data.sz.filtering))
     t_prof = self.model.T_cmpt.temp_fun(self.pars, self.data.sz.r_pp[:self.data.sz.ub])
-    map_prof = map_out[conv_2d.shape[0]//2, conv_2d.shape[0]//2+1:]*self.data.sz.convert(t_prof)
+    h = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
+                 np.append(t_prof, t_prof), 'cubic', bounds_error=False, fill_value=(t_prof[-1], t_prof[-1]))
+    map_prof = map_out[conv_2d.shape[0]//2, conv_2d.shape[0]//2:]*self.data.sz.convert(np.append(h(0), t_prof))
     g = interp1d(self.data.sz.radius[self.data.sz.sep:], map_prof, 'cubic', fill_value='extrapolate')
     chisq = np.sum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/
                     self.data.sz.flux_data[2])**2)
