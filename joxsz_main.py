@@ -161,21 +161,21 @@ pars['backscale'] = mb.ParamGaussian(1., prior_mu = 1, prior_sigma = 0.1)
 #pars['Pout_logergpcm3'].maxval = -8
 
 # stop radii going beyond edge of data
-pars['ne_logrc_1'].maxval = annuli.edges_logkpc[-2]
-pars['ne_logr_s'].maxval = annuli.edges_logkpc[-2]
+pars['log(r_c)'].maxval = annuli.edges_logkpc[-2]
+pars['log(r_s)'].maxval = annuli.edges_logkpc[-2]
 
 # some ranges of parameters to allow for the density model
-pars['ne_gamma'].val = 3.
-pars['ne_gamma'].frozen = True
-pars['ne_logrc_1'].val = 2.
-pars['ne_alpha'].val = 0.1
-pars['ne_alpha'].maxval = 4.
-pars['ne_alpha'].minval = 0.
-pars['ne_epsilon'].maxval = 10
+pars['gamma'].val = 3.
+pars['gamma'].frozen = True
+pars['log(r_c)'].val = 2.
+pars['alpha'].val = 0.1
+pars['alpha'].maxval = 4.
+pars['alpha'].minval = 0.
+pars['epsilon'].maxval = 10
 
 # Adam
-pars['ne_alpha'].val = 0.
-pars['ne_alpha'].frozen = True
+pars['alpha'].val = 0.
+pars['alpha'].frozen = True
 
 #pars['a'].frozen = True
 pars['b'].frozen = True
