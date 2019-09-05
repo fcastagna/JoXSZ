@@ -117,7 +117,7 @@ Z_cmpt = mb.CmptFlat('Z', annuli, defval = Z_solar, minval = 0)
 
 ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
 press_cmpt = CmptPressure('p', annuli)
-T_cmpt_xz = CmptUPPTemperature('T', annuli, press_cmpt, ne_cmpt)
+T_cmpt = CmptUPPTemperature('T', annuli, press_cmpt, ne_cmpt)
 # for non hydrostatic model only
 # this is the parametric temperature model from McDonald+14, eqn 1
 #T_cmpt = mbx.CmptMcDonaldTemperature('T', annuli)
@@ -127,7 +127,7 @@ T_cmpt_xz = CmptUPPTemperature('T', annuli, press_cmpt, ne_cmpt)
 
 ## NON-HYDRO
 # non-hydrostatic model combining density, temperature and metallicity
-model_xz = mb.ModelNullPot(annuli, ne_cmpt, T_cmpt_xz, Z_cmpt, 
+model = mb.ModelNullPot(annuli, ne_cmpt, T_cmpt, Z_cmpt, 
                             NH_1022pcm2 = NH_1022pcm2)
 
 ## HYDRO
@@ -135,7 +135,7 @@ model_xz = mb.ModelNullPot(annuli, ne_cmpt, T_cmpt_xz, Z_cmpt,
 #model = mb.ModelHydro(annuli, nfw, ne_cmpt, Z_cmpt, NH_1022pcm2 = NH_1022pcm2)
 
 # get default parameters
-pars = model_xz.defPars()
+pars = model.defPars()
 pars.update(press_cmpt.defPars())
 
 # add parameter which allows variation of background with a
@@ -190,7 +190,7 @@ errxfig = 0.5 * (edges[1:] - edges[:-1])
 geomareas = np.pi * (edges[1:]**2 - edges[:-1]**2)
 
 # do fitting of data with model
-fit = mb.Fit(pars, model_xz, data)
+fit = mb.Fit(pars, model, data)
 fit.press = press_cmpt
 fit.mode = 'single'
 fit.mass_cmpt = CmptMyMass('m', annuli, press_cmpt, ne_cmpt)
@@ -201,7 +201,7 @@ fit.get_sz_like = MethodType(get_sz_like, fit)
 fit.getLikelihood = MethodType(getLikelihood, fit)
 # refreshThawed is required if frozen is changed after Fit is
 # constructed before doFitting (it's not required here)
-# fit_xz.refreshThawed() 
+# fit.refreshThawed() 
 fit.doFitting()
 # save best fit
 with open('%s%s_fit.pickle' % (savedir, name), 'wb') as f:
@@ -222,12 +222,9 @@ mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2])
 # corner plot, useless command if all params are plotted
 # construct a set of physical median profiles from the chain and save
 
-profs = mb.replayChainPhys(chainfilename, model_xz, pars, thin=10, confint=ci)
+profs = mb.replayChainPhys(chainfilename, model, pars, thin=10, confint=ci)
 mb.savePhysProfilesHDF5('%s%s_medians%s.hdf5' % (savedir, name, ci), profs)
 mb.savePhysProfilesText('%s%s_medians%s.txt' % (savedir, name, ci), profs)
-#profs = mbxz.replayChainPhys(chainfilename, model_xz, data_xz, press_cmpt,
-#                             pars, thin = 10, confint = ci)
-#mbxz.savePhysProfilesText('%s_medians95.txt' % name, profs)
 flatchain = mcmc.sampler.flatchain[::100]
 mcmc_thawed = mcmc.fit.thawed
 
@@ -239,11 +236,11 @@ profs = []
 for pars in flatchain: #[-1000:]:
     fit.updateThawed(pars)
     profs.append(fit.calcProfiles())
-    lxz, mxz, hxz = np.percentile(profs, [50-ci/2., 50, 50+ci/2.], axis=0)
+    lxsz, mxsz, hxsz = np.percentile(profs, [50-ci/2., 50, 50+ci/2.], axis=0)
 # lo, med and hi have shapes (numberofbands, numberannuli)
 
 # fig model on data
-fitwithmod(data, lxz, mxz, hxz, geomareas, xfig, errxfig, plotdir)
+fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, plotdir)
 # SZ data fit
-med_xz, lo_xz, hi_xz = best_fit_xsz(sz_data, flatchain, fit, ci, plotdir)
-plot_best_sz(sz_data, med_xz, lo_xz, hi_xz, ci, plotdir)
+med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz_data, flatchain, fit, ci, plotdir)
+plot_best_sz(sz_data, med_xsz, lo_xsz, hi_xsz, ci, plotdir)
