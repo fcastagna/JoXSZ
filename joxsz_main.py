@@ -194,6 +194,7 @@ fit = mb.Fit(pars, model_xz, data)
 fit.press = press_cmpt
 fit.mode = 'single'
 fit.mass_cmpt = CmptMyMass('m', annuli, press_cmpt, ne_cmpt)
+fit.savedir = savedir
 
 from types import MethodType
 fit.get_sz_like = MethodType(get_sz_like, fit)
