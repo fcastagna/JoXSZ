@@ -223,12 +223,12 @@ class CmptPressure(mb.Cmpt):
         return P_0/((r_kpc/r_p)**c*(1+(r_kpc/r_p)**a)**((b-c)/a))
 
     def press_derivative(self, pars, r_kpc):
-        P0 = pars['P0'].val
+        P_0 = pars['P_0'].val
         r_p = pars['r_p'].val
         a = pars['a'].val
         b = pars['b'].val
         c = pars['c'].val
-        return -P0*(c+b*(r_kpc/r_p)**a)/(
+        return -P_0*(c+b*(r_kpc/r_p)**a)/(
                 r_p*(r_kpc/r_p)**(c+1)*(1+(r_kpc/r_p)**a)**((b-c+a)/a))
 
     def computeProf(self, pars):
