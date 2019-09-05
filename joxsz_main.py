@@ -13,8 +13,8 @@ import numpy as np
 import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
-                         CmptUPPTemperature, CmptMyMass, mydefPars, myvikhFunction, get_sz_like, getLikelihood, prelimfit, 
-                         traceplot, triangle, fitwithmod, best_fit_xsz, plot_best_sz)
+                         CmptUPPTemperature, CmptMyMass, mydefPars, myvikhFunction, myprior, get_sz_like, getLikelihood, 
+                         prelimfit, traceplot, triangle, fitwithmod, best_fit_xsz, plot_best_sz)
 from types import MethodType
 
 #################
@@ -117,6 +117,7 @@ Z_cmpt = mb.CmptFlat('Z', annuli, defval = Z_solar, minval = 0)
 ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
 ne_cmpt.vikhFunction = MethodType(myvikhFunction, ne_cmpt)
 ne_cmpt.defPars = MethodType(mydefPars, ne_cmpt)
+ne_cmpt.prior = MethodType(myprior, ne_cmpt)
 press_cmpt = CmptPressure('p', annuli)
 T_cmpt = CmptUPPTemperature('T', annuli, press_cmpt, ne_cmpt)
 # for non hydrostatic model only
