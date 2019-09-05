@@ -429,7 +429,7 @@ def best_fit_xsz(sz, chain, fit, ci, plotdir):
     profs = []
     for pars in chain[::10]:
         fit.updateThawed(pars)
-        out_prof = fit.get_sz_like(output='map_prof')
+        out_prof = fit.get_sz_like(output='flux')
         profs.append(out_prof)
     profs = np.row_stack(profs)
     med = np.median(profs, axis=0)
