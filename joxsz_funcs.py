@@ -16,22 +16,21 @@ import corner
 class SZ_data:
     """Dataset class."""
 
-    def __init__(self, radius, step, r_pp, sep, ub, kpc_as, phys_const, d_mat, 
-                 beam_2d, filtering, flux_data, convert, mass_const):
-   
-        self.radius = radius
-        self.r_pp = r_pp
-        self.step = step
-        self.sep = sep
-        self.ub = ub
-        self.kpc_as = kpc_as
+    def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d,
+                 radius, sep, r_pp, ub, d_mat, filtering):
+
         self.phys_const = phys_const
-        self.d_mat = d_mat
-        self.beam_2d = beam_2d
-        self.filtering = filtering
-        self.flux_data = flux_data
+        self.step = step
+        self.kpc_as = kpc_as
         self.convert = convert
-        self.mass_const = mass_const
+        self.flux_data = flux_data
+        self.beam_2d = beam_2d
+        self.radius = radius
+        self.sep = sep
+        self.r_pp = r_pp
+        self.ub = ub
+        self.d_mat = d_mat
+        self.filtering = filtering
 
 def read_xy_err(filename, ncol):
     '''
