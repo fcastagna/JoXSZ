@@ -54,8 +54,8 @@ ub = min(sep, r_pp.size) # ub=sep unless r500 is too low and then r_pp.size < se
 d_mat = centdistmat(radius*kpc_as)
 wn_as, tf = read_tf(tf_filename, approx=tf_approx, loc=loc, scale=scale, c=c) # wave number in arcsec^(-1), transmission
 filtering = filt_image(wn_as, tf, d_mat.shape[0], mystep)
-sz_data = SZ_data(radius, r_pp, mystep, sep, ub, kpc_as, phys_const, d_mat, beam_2d, 
-                  filtering, flux_data, convert, mb.physconstants)
+sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d,
+                  radius, sep, r_pp, ub, d_mat, filtering)
 #################
 #remove cache
 mb.xspechelper.deleteFile('countrate_cache.hdf5')
