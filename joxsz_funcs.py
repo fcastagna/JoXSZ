@@ -13,6 +13,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import corner
 
+plt.style.use('classic')
+
 class SZ_data:
     """Dataset class."""
 
