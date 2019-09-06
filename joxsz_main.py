@@ -97,7 +97,7 @@ ci = 95
 # MCMC parameters
 nburn = 2000 # number to burn
 nlength = 2000 # length of chain
-nwalkers = 20 # number of walkers
+nwalkers = 30 # number of walkers
 nthreads = 8 # number of processes/threads
 
 ## Code
