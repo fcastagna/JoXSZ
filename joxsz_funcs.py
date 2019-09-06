@@ -432,6 +432,7 @@ def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, plotdir='./')
             if i+1 < mysamples.shape[1]:
                 plt.clf()
         elif i+1 == mysamples.shape[1]:
+            plt.tick_params(labelbottom=True)
             plt.xlabel('Iteration number')
             pdf.savefig()
     pdf.close()
