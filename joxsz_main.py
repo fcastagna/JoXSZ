@@ -125,9 +125,9 @@ ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
 # (single mode means only one beta model, as described in Vikhlinin+06)
 
 # change parameter names
-ne_cmpt.vikhFunction = MethodType(myvikhFunction, ne_cmpt)
-ne_cmpt.defPars = MethodType(mydefPars, ne_cmpt)
-ne_cmpt.prior = MethodType(myprior, ne_cmpt)
+mb.CmptVikhDensity.vikhFunction = MethodType(myvikhFunction, ne_cmpt)
+mb.CmptVikhDensity.defPars = MethodType(mydefPars, ne_cmpt)
+mb.CmptVikhDensity.prior = MethodType(myprior, ne_cmpt)
 
 press_cmpt = CmptPressure('p', annuli)
 T_cmpt = CmptUPPTemperature('T', annuli, press_cmpt, ne_cmpt)
@@ -173,8 +173,8 @@ fit.press = press_cmpt
 fit.mode = 'single'
 fit.mass_cmpt = CmptMyMass('m', annuli, press_cmpt, ne_cmpt)
 fit.savedir = savedir
-fit.get_sz_like = MethodType(get_sz_like, fit)
-fit.getLikelihood = MethodType(getLikelihood, fit)
+mb.Fit.get_sz_like = MethodType(get_sz_like, fit)
+mb.Fit.getLikelihood = MethodType(getLikelihood, fit)
 # fit.refreshThawed() 
 # refreshThawed is required if frozen is changed after Fit is constructed before doFitting (it's not required here)
 fit.doFitting()
@@ -197,7 +197,7 @@ mcmc.save(chainfilename)
 # mcmc.sampler.chain.shape dà la dimensione
 # mcmc.sampler.chain dà i valori
 # tolgo la 3dim (data dai 200 samplers)
-mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2])
+mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F')
 
 # corner plot, useless command if all params are plotted
 # construct a set of physical median profiles from the chain and save
