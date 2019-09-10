@@ -378,7 +378,7 @@ def getLikelihood(self, vals=None):
         self.bestlike = totlike
         #print("Better fit %.1f" % totlike)
         with mb.utils.AtomicWriteFile("%s/fit.dat" % self.savedir) as fout:
-            mb.utils.uprint("likelihood = %g + %g = %g" % (like, prior, totlike), file=fout)
+            mb.utils.uprint("likelihood = %g + %g + %g = %g" % (like, sz_like, prior, totlike), file=fout)
             for p in sorted(self.pars):
                 mb.utils.uprint("%s = %s" % (p, self.pars[p]), file=fout)
 
