@@ -467,7 +467,7 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, plotdir):
         plt.ylabel('counts / area [cts arcmin$^{-2}$]')
         plt.text(0.1, 1.2, '[%g-%g] keV' % (band.emin_keV, band.emax_keV))	
         plt.errorbar(xfig, mmed/geomareas/band.areascales, color='red')	
-        plt.fill_between(xfig, hhi /geomareas/band.areascales, llo/geomareas/band.areascales, color='gold')
+        plt.fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold')
         plt.plot(xfig, band.backrates*band.exposures, linestyle=':', color='b')
         plt.scatter(xfig, band.cts/geomareas/band.areascales, color='darkblue')
         plt.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
