@@ -14,8 +14,9 @@ import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
                          CmptUPPTemperature, CmptMyMass, mydefPars, myvikhFunction, myprior, get_sz_like, getLikelihood, 
-                         prelimfit, traceplot, triangle, fitwithmod, best_fit_xsz, plot_best_sz)
+                         prelimfit, traceplot, triangle, fitwithmod, best_fit_xsz, plot_best_sz, plot_rad_profs)
 from types import MethodType
+import h5py
 
 #################
 ### SZ (see https://github.com/fcastagna/preprofit for more details)
@@ -224,3 +225,7 @@ fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, plotdir)
 # SZ data fit
 med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz_data, flatchain, fit, ci, plotdir)
 plot_best_sz(sz_data, med_xsz, lo_xsz, hi_xsz, ci, plotdir)
+
+# Radial profiles plot
+med_data = h5py.File('%s%s_medians%s.hdf5' % (savedir, name, ci), 'r')
+plot_rad_profs(med_data, plotdir)
