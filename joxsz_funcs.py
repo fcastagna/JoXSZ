@@ -384,7 +384,7 @@ def getLikelihood(self, vals=None):
 
     return totlike
 
-def prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir):
+def prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir='./'):
     pdf = PdfPages(plotdir+'prelimfit.pdf')
     for i, (band, prof) in enumerate(zip(data.bands, myprofs)):
         plt.subplot(2, 3, i+1)
@@ -455,7 +455,7 @@ def triangle(mysamples, param_names, plotdir='./'):
     pdf.savefig()
     pdf.close()
 
-def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, plotdir):
+def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, plotdir='./'):
     plt.clf()
     pdf = PdfPages(plotdir+'fitwithmod.pdf')
     for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
@@ -476,7 +476,7 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, plotdir):
     pdf.savefig()
     pdf.close()
 
-def best_fit_xsz(sz, chain, fit, ci, plotdir):
+def best_fit_xsz(sz, chain, fit, ci, plotdir='./'):
     profs = []
     for pars in chain[::10]:
         fit.updateThawed(pars)
@@ -487,7 +487,7 @@ def best_fit_xsz(sz, chain, fit, ci, plotdir):
     lo, hi = np.percentile(profs, [50-ci/2, 50+ci/2], axis=0)
     return med, lo, hi
 
-def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir):
+def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
     sep = sz.radius.size//2
     pdf = PdfPages(plotdir+'best_sz.pdf')
     plt.clf()
