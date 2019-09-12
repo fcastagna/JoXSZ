@@ -504,3 +504,36 @@ def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
     plt.legend(('(SZ + X) fit', 'SZ data'), loc='lower right')
     pdf.savefig()
     pdf.close()
+
+def extract_profiles(name, data, rname='r_kpc'):
+    profs = data[name]
+    r = data[rname][:,0]
+    med = profs[:,0]
+    low, hig = med+profs[:,1], med+profs[:,2]
+    return r, med, low, hig
+
+def plot_profiles(ax, name, data, ylab='', rname='r_kpc', nrow=None):
+    r, med, low, hig = extract_profiles(name, data)
+    if nrow == None:
+        nrow = r.size
+    ax.plot(r[:nrow], med[:nrow])
+    ax.fill_between(r[:nrow], low[:nrow], hig[:nrow], color='powderblue')
+    ax.set_xlim(100, 1100)
+    ax.set_ylabel(ylab)
+    ax.set_yscale('log')
+
+def plot_rad_profs(data, plotdir='./'):
+    pdf = PdfPages(plotdir+'radial_profiles.pdf')
+    f, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, sharex = True)
+    plot_profiles(ax1, 'ne_pcm3', data, 'Density (cm$^{-3}$)', nrow=12)
+    plot_profiles(ax2, 'T_keV', data, 'Temperature (keV)', nrow=12)
+    ax2.set_yscale('linear')
+    plot_profiles(ax3, 'Pe_keVpcm3', data, 'Pressure (keV cm$^{-3}$)', nrow=12)
+    plot_profiles(ax4, 'Se_keVcm2', data, 'Entropy (keV cm$^2$)', nrow=12)
+    plot_profiles(ax5, 'tcool_yr', data, 'Cooling time (Gyr)', nrow=12)
+    plot_profiles(ax6, 'Mgascuml_Msun', data, 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$', nrow=12)
+    ax2.yaxis.set_label_position('right')
+    ax4.yaxis.set_label_position('right')
+    ax6.yaxis.set_label_position('right')
+    pdf.savefig()
+    pdf.close()
