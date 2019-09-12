@@ -505,19 +505,13 @@ def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
     pdf.savefig()
     pdf.close()
 
-def extract_profiles(name, data, rname='r_kpc'):
-    profs = data[name]
-    r = data[rname][:,0]
-    med = profs[:,0]
-    low, hig = med+profs[:,1], med+profs[:,2]
-    return r, med, low, hig
-
 def plot_profiles(ax, name, data, ylab='', rname='r_kpc', nrow=None):
-    r, med, low, hig = extract_profiles(name, data)
+    r = data[rname][:,0]
+    med, low, hig = data[name].T
     if nrow == None:
         nrow = r.size
     ax.plot(r[:nrow], med[:nrow])
-    ax.fill_between(r[:nrow], low[:nrow], hig[:nrow], color='powderblue')
+    ax.fill_between(r[:nrow], med[:nrow]+low[:nrow], med[:nrow]+hig[:nrow], color='powderblue')
     ax.set_xlim(100, 1100)
     ax.set_ylabel(ylab)
     ax.set_yscale('log')
