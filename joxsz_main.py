@@ -202,9 +202,9 @@ mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F
 
 # corner plot, useless command if all params are plotted
 # construct a set of physical median profiles from the chain and save
-profs = mb.replayChainPhys(chainfilename, model, pars, thin=10, confint=ci)
-mb.savePhysProfilesHDF5('%s%s_medians%s.hdf5' % (savedir, name, ci), profs)
-mb.savePhysProfilesText('%s%s_medians%s.txt' % (savedir, name, ci), profs)
+radprofs = mb.replayChainPhys(chainfilename, model, pars, thin=10, confint=ci)
+mb.savePhysProfilesHDF5('%s%s_medians%s.hdf5' % (savedir, name, ci), radprofs)
+mb.savePhysProfilesText('%s%s_medians%s.txt' % (savedir, name, ci), radprofs)
 flatchain = mcmc.sampler.flatchain[::100]
 mcmc_thawed = mcmc.fit.thawed
 
@@ -227,5 +227,4 @@ med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz_data, flatchain, fit, ci, plotdir)
 plot_best_sz(sz_data, med_xsz, lo_xsz, hi_xsz, ci, plotdir)
 
 # Radial profiles plot
-med_data = h5py.File('%s%s_medians%s.hdf5' % (savedir, name, ci), 'r')
-plot_rad_profs(med_data, plotdir)
+plot_rad_profs(radprofs, plotdir)
