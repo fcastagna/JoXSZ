@@ -223,7 +223,7 @@ for pars in flatchain: #[-1000:]:
 fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, plotdir)
 
 # SZ data fit
-med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz_data, flatchain, fit, ci, plotdir)
+med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz_data, flatchain, fit, ci)
 plot_best_sz(sz_data, med_xsz, lo_xsz, hi_xsz, ci, plotdir)
 
 # Radial profiles plot
