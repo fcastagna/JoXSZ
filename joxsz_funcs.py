@@ -476,7 +476,7 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, plotdir='./'):
     pdf.savefig()
     pdf.close()
 
-def best_fit_xsz(sz, chain, fit, ci, plotdir='./'):
+def best_fit_xsz(sz, chain, fit, ci):
     profs = []
     for pars in chain[::10]:
         fit.updateThawed(pars)
