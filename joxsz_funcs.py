@@ -202,16 +202,31 @@ class CmptPressure(mb.Cmpt):
         mb.Cmpt.__init__(self, name, annuli)
 
     def defPars(self):
+        '''
+        Default parameter values
+        ------------------------
+        P_0 = normalizing constant
+        a = slope at intermediate radii
+        b = slope at large radii
+        c = slope at small radii
+        r_p = characteristic radius
+        '''        
         pars = {
             'P_0': mb.Param(0.4, minval=0, maxval=20),
             'a': mb.Param(1.33, minval=0.1, maxval=10),
             'b': mb.Param(4.13, minval=0.1, maxval=15),
             'c': mb.Param(0.014, minval=0, maxval=3),
-            'r_p': mb.Param(500, minval=5, maxval=3000)
+            'r_p': mb.Param(300., minval=100., maxval=1000.)
             }
         return pars
 
     def press_fun(self, pars, r_kpc):
+        '''
+        Compute the gNFW pressure profile
+        ---------------------------------
+        pars = set of pressure parameters
+        r_kpc = radius (kpc)
+        '''
         P_0 = pars['P_0'].val
         r_p = pars['r_p'].val
         a = pars['a'].val
@@ -220,6 +235,12 @@ class CmptPressure(mb.Cmpt):
         return P_0/((r_kpc/r_p)**c*(1+(r_kpc/r_p)**a)**((b-c)/a))
 
     def press_derivative(self, pars, r_kpc):
+        '''
+        Compute the gNFW pressure profile first derivative
+        --------------------------------------------------
+        pars = set of pressure parameters
+        r_kpc = radius (kpc)
+        '''
         P_0 = pars['P_0'].val
         r_p = pars['r_p'].val
         a = pars['a'].val
@@ -227,52 +248,76 @@ class CmptPressure(mb.Cmpt):
         c = pars['c'].val
         return -P_0*(c+b*(r_kpc/r_p)**a)/(r_p*(r_kpc/r_p)**(c+1)*(1+(r_kpc/r_p)**a)**((b-c+a)/a))
 
-    def computeProf(self, pars):
-        return self.press_fun(pars, self.annuli.midpt_kpc)
-
 class CmptUPPTemperature(mb.Cmpt):
-    
+    '''
+    Class to derive the temperature profile as pressure profile over density profile (ideal gas law)
+    ------------------------------------------------------------------------------------------------
+    '''    
     def __init__(self, name, annuli, press_prof, ne_prof):
         mb.Cmpt.__init__(self, name, annuli)
         self.press_prof = press_prof
         self.ne_prof = ne_prof
 
     def defPars(self):
+        '''
+        Default parameter values from pressure and density profiles
+        -----------------------------------------------------------
+        '''
         pars = self.press_prof.defPars()
         pars.update(self.ne_prof.defPars())
         return pars
     
     def temp_fun(self, pars, r_kpc):
+        '''
+        Compute the temperature profile
+        -------------------------------
+        '''
         pr = self.press_prof.press_fun(pars, r_kpc)
         ne = self.ne_prof.vikhFunction(pars, r_kpc)
         return pr/ne
 
-    def computeProf(self, pars):
-        return self.temp_fun(pars, self.annuli.midpt_kpc)
-
 class CmptMyMass(mb.Cmpt):
-    
+    '''
+    Class to compute the mass profile under the hydrostatic equilibrium assumption
+    ------------------------------------------------------------------------------
+    '''        
     def __init__(self, name, annuli, press_prof, ne_prof):
         mb.Cmpt.__init__(self, name, annuli)
         self.press_prof = press_prof
         self.ne_prof = ne_prof
 
     def defPars(self):
+        '''
+        Default parameter values from pressure and density profiles
+        -----------------------------------------------------------
+        '''
         pars = self.press_prof.defPars()
         pars.update(self.ne_prof.defPars())
         return pars
     
     def mass_fun(self, pars, r_kpc, mu_gas=0.61):
+        '''
+        Compute the mass profile
+        ------------------------
+        '''
         dpr_kpc = self.press_prof.press_derivative(pars, r_kpc)
         dpr_cm = dpr_kpc*keV_erg/kpc_cm
         ne = self.ne_prof.vikhFunction(pars, r_kpc)
         r_cm = r_kpc*kpc_cm
         return -dpr_cm*r_cm**2/(mu_gas*mu_g*ne*G_cgs)/solar_mass_g
     
-    def computeProf(self, pars):
-        return self.mass_fun(pars, self.annuli.midpt_kpc)
-
-def mydefPars(self):
+def mydens_defPars(self):
+    '''
+    Default density profile parameters
+    ----------------------------------
+    n_0 = (...)
+    beta = (...)
+    r_c = (...)
+    r_s = (...)
+    alpha = (...)
+    epsilon = (...)
+    gamma = (...)
+    '''
     pars = {
         'n_0': mb.Param(-3., minval=-7., maxval=2.),
         r'\beta': mb.Param(2/3., minval=0., maxval=4.),
@@ -284,7 +329,11 @@ def mydefPars(self):
         }
     return pars
 
-def myvikhFunction(self, pars, radii_kpc):
+def mydens_vikhFunction(self, pars, radii_kpc):
+    '''
+    Compute the Vikhlinin density profile
+    -------------------------------------
+    '''
     n_0 = 10**pars['n_0'].val
     beta = pars[r'\beta'].val
     r_c = 10**pars['log(r_c)'].val
@@ -301,7 +350,11 @@ def myvikhFunction(self, pars, radii_kpc):
         retn_sqd += n_02**2 / (1 + r**2/r_c2**2)**(3*beta_2)
     return np.sqrt(retn_sqd)
 
-def myprior(self, pars):
+def mydens_prior(self, pars):
+    '''
+    Density profile parameters prior
+    --------------------------------
+    '''   
     r_c = 10**pars['log(r_c)'].val
     r_s = 10**pars['log(r_s)'].val
     if r_c > r_s:
@@ -309,6 +362,17 @@ def myprior(self, pars):
     return 0
 
 def get_sz_like(self, output='ll'):
+    '''
+    Computes the log-likelihood on SZ data for the current parameters
+    -----------------------------------------------------------------
+    output = desired output
+        'll' = log-likelihood
+        'chisq' = Chi-Squared
+        'pp' = pressure profile
+        'flux' = flux profile
+    -------------------------------------------------------------------------------------
+    RETURN: log-posterior probability or -inf whether theta is out of the parameter space
+    '''
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
     ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', backend='Python')[:self.data.sz.ub]
     y = (kpc_cm*self.data.sz.phys_const[1]/self.data.sz.phys_const[0]*ab)
@@ -335,17 +399,17 @@ def get_sz_like(self, output='ll'):
         return map_prof
 
 def getLikelihood(self, vals=None):
-    """Get likelihood for parameters given.
-
-    Also include are the priors from the various components
-    """
+    '''
+    Computes the joint SZ-X log-likelihood for the current parameters
+    -----------------------------------------------------------------
+    '''
     if vals is not None:
         self.updateThawed(vals)
-
     # prior on parameters
     parprior = sum((self.pars[p].prior() for p in self.pars))
     if not np.isfinite(parprior):
         return -np.inf
+    # exclude unphsical mass profiles
     if self.exclude_unphy_mass:
         m_prof = self.mass_cmpt.mass_fun(self.pars, self.data.sz.r_pp) 
         if not(all(np.gradient(m_prof, 1) > 0)):
@@ -355,7 +419,6 @@ def getLikelihood(self, vals=None):
     prior = self.model.prior(self.pars)+parprior
     sz_like = self.get_sz_like()
     totlike = float(like+prior+sz_like)
-
     if mb.fit.debugfit and (totlike-self.bestlike) > 0.1:
         self.bestlike = totlike
         with mb.utils.AtomicWriteFile("%s/fit.dat" % self.savedir) as fout:
@@ -364,23 +427,22 @@ def getLikelihood(self, vals=None):
                 mb.utils.uprint("%s = %s" % (p, self.pars[p]), file=fout)
     return totlike
 
+# (...) continua a commentare da qui in poi
 def prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir='./'):
     pdf = PdfPages(plotdir+'prelimfit.pdf')
     for i, (band, prof) in enumerate(zip(data.bands, myprofs)):
         plt.subplot(2, 3, i+1)
         plt.xscale('log')
         plt.yscale('log')
-        plt.axis([0.08, 1.2*xfig.max(), 1, 2*(band.cts/geomareas/
-                  band.areascales).max()])
+        plt.axis([0.08, 1.2*xfig.max(), 1, 2*(band.cts/geomareas/band.areascales).max()])
         plt.xlabel('r [arcmin]')
         plt.ylabel('counts / area [cts arcmin$^{-2}$]')
-        #plt.title('[ %g - %g] keV' % (band.emin_keV, band.emax_keV))
         plt.text(0.1, 1.2, '[%g-%g] keV' % (band.emin_keV, band.emax_keV))
         plt.plot(xfig, myprofs[i]/geomareas/band.areascales, color='r')
         plt.plot(xfig, band.backrates*band.exposures, linestyle=':', color='b')
         plt.scatter(xfig, band.cts/geomareas/band.areascales, color='darkblue')
-        plt.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
-                     yerr=band.cts**0.5/geomareas/band.areascales, fmt='o')
+        plt.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, yerr=band.cts**0.5/geomareas/band.areascales, 
+                     fmt='o')
     plt.subplots_adjust(wspace=0.45, hspace=0.35)	
     pdf.savefig()
     pdf.close()
