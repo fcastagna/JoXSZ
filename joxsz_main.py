@@ -14,7 +14,8 @@ import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
                          CmptUPPTemperature, CmptMyMass, mydefPars, myvikhFunction, myprior, get_sz_like, getLikelihood, 
-                         prelimfit, traceplot, triangle, fitwithmod, best_fit_xsz, plot_best_sz, plot_rad_profs)
+                         prelimfit, traceplot, triangle, fitwithmod, best_fit_xsz, plot_best_sz, my_rad_profs, plot_rad_profs, 
+                         mass_r_delta, m_r_delta, mass_plot)
 from types import MethodType
 import h5py
 
@@ -65,8 +66,7 @@ wn_as, tf = read_tf(tf_filename, approx=tf_approx, loc=loc, scale=scale, c=c) # 
 filtering = filt_image(wn_as, tf, d_mat.shape[0], mystep)
 t_keV, compt_Jy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True)
 convert = interp1d(t_keV, compt_Jy_beam*1e3, 'linear', fill_value='extrapolate')
-sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d,
-                  radius, sep, r_pp, ub, d_mat, filtering)
+sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering)
 
 #################
 ### X-ray
@@ -120,7 +120,7 @@ data.sz = sz_data
 
 
 # flat metallicity profile
-Z_cmpt = mb.CmptFlat('Z', annuli, defval = Z_solar, minval = 0)
+Z_cmpt = mb.CmptFlat('Z', annuli, defval=Z_solar, minval=0, maxval=1)
 # this is the modified beta model density described in Sanders+17 (used in McDonald+12)
 ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
 # (single mode means only one beta model, as described in Vikhlinin+06)
@@ -135,28 +135,26 @@ T_cmpt = CmptUPPTemperature('T', annuli, press_cmpt, ne_cmpt)
 
 ## NON-HYDRO
 # non-hydrostatic model combining density, temperature and metallicity
-model = mb.ModelNullPot(annuli, ne_cmpt, T_cmpt, Z_cmpt, NH_1022pcm2 = NH_1022pcm2)
+model = mb.ModelNullPot(annuli, ne_cmpt, T_cmpt, Z_cmpt, NH_1022pcm2=NH_1022pcm2)
 
 # get default parameters
 pars = model.defPars()
 pars.update(press_cmpt.defPars())
 
 # add parameter which allows variation of background with a Gaussian prior with sigma = 0.1
-pars['backscale'] = mb.ParamGaussian(1., prior_mu = 1, prior_sigma = 0.1)
+pars['backscale'] = mb.ParamGaussian(1., prior_mu=1, prior_sigma=0.1)
 
 # stop radii going beyond edge of data
 pars['log(r_c)'].maxval = annuli.edges_logkpc[-2]
 pars['log(r_s)'].maxval = annuli.edges_logkpc[-2]
 
 # some ranges of parameters to allow for the density model
-pars['gamma'].val = 3.
-pars['gamma'].frozen = True
+pars[r'\gamma'].val = 3.
+pars[r'\gamma'].frozen = True
 pars['log(r_c)'].val = 2.
-pars['epsilon'].maxval = 10
-
-# Adam
-pars['alpha'].val = 0.
-pars['alpha'].frozen = True
+pars[r'\epsilon'].maxval = 10
+pars[r'\alpha'].val = 0.
+pars[r'\alpha'].frozen = True
 
 #pars['a'].frozen = True
 #pars['b'].frozen = True
@@ -164,20 +162,29 @@ pars['c'].frozen = True
 
 # rimpiazzo di veusz
 edges = annuli.edges_arcmin
-xfig = 0.5 * (edges[1:] + edges[:-1])
-errxfig = 0.5 * (edges[1:] - edges[:-1])
-geomareas = np.pi * (edges[1:]**2 - edges[:-1]**2)
+xfig = 0.5*(edges[1:]+edges[:-1])
+errxfig = 0.5*(edges[1:]-edges[:-1])
+geomareas = np.pi*(edges[1:]**2-edges[:-1]**2)
 
 # do fitting of data with model
 fit = mb.Fit(pars, model, data)
 fit.press = press_cmpt
 fit.mode = 'single'
+fit.exclude_unphy_mass = True
 fit.mass_cmpt = CmptMyMass('m', annuli, press_cmpt, ne_cmpt)
 fit.savedir = savedir
 mb.Fit.get_sz_like = MethodType(get_sz_like, fit)
 mb.Fit.getLikelihood = MethodType(getLikelihood, fit)
+
+# =============================================================================
+# # Check on the unphysical masses exclusion
+# fit.updateThawed([1, 0.1, 1, 4, 2, 5, 1, 2.4, 3, -1, 249])
+# fit.getLikelihood()
+# =============================================================================
+
 # fit.refreshThawed() 
 # refreshThawed is required if frozen is changed after Fit is constructed before doFitting (it's not required here)
+
 fit.doFitting()
 
 # save best fit
@@ -186,45 +193,58 @@ with open('%s%s_fit.pickle' % (savedir, name), 'wb') as f:
 
 # construct MCMC object and do burn in
 mcmc = mb.MCMC(fit, walkers=nwalkers, processes=nthreads)
+chainfilename = '%s%s_chain.hdf5' % (savedir, name)
 mcmc.burnIn(nburn)
 
 # run mcmc proper
-chainfilename = '%s%s_chain.hdf5' % (savedir, name)
 mcmc.run(nlength)
 mcmc.save(chainfilename)
-
-# trace plot
-# mcmc.fit.thawed dà i nomi dei parametri
-# mcmc.sampler.chain.shape dà la dimensione
-# mcmc.sampler.chain dà i valori
-# tolgo la 3dim (data dai 200 samplers)
 mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F')
-
-# corner plot, useless command if all params are plotted
-# construct a set of physical median profiles from the chain and save
-radprofs = mb.replayChainPhys(chainfilename, model, pars, thin=10, confint=ci)
-mb.savePhysProfilesHDF5('%s%s_medians%s.hdf5' % (savedir, name, ci), radprofs)
-mb.savePhysProfilesText('%s%s_medians%s.txt' % (savedir, name, ci), radprofs)
 flatchain = mcmc.sampler.flatchain[::100]
 mcmc_thawed = mcmc.fit.thawed
 
+# plots
 myprofs = fit.calcProfiles()
 prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir)
 traceplot(mysamples, mcmc_thawed, nsteps=nlength, nw=nwalkers, plotdir=plotdir)
-triangle(mysamples, mcmc_thawed, plotdir)
 profs = []
 for pars in flatchain: #[-1000:]:
     fit.updateThawed(pars)
     profs.append(fit.calcProfiles())
-    lxsz, mxsz, hxsz = np.percentile(profs, [50-ci/2., 50, 50+ci/2.], axis=0)
+lxsz, mxsz, hxsz = np.percentile(profs, [50-ci/2., 50, 50+ci/2.], axis=0)
 # lo, med and hi have shapes (numberofbands, numberannuli)
 
 # fig model on data
-fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, plotdir)
+fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, sz_data, flatchain, fit, ci, plotdir)
 
 # SZ data fit
 med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz_data, flatchain, fit, ci)
 plot_best_sz(sz_data, med_xsz, lo_xsz, hi_xsz, ci, plotdir)
+triangle(mysamples, mcmc_thawed, plotdir)
 
-# Radial profiles plot
-plot_rad_profs(radprofs, plotdir)
+# Radial profiles
+tdens = ttemp = tpress = tentr = tcool = tgmass = np.zeros((flatchain.shape[0], r_pp.size))
+for j in range(flatchain.shape[0]):
+    tdens[j], ttemp[j], tpress[j], tentr[j], tcool[j], tgmass[j] = my_rad_profs(flatchain[j,:], r_pp, fit)
+dens = np.percentile(tdens, [50-ci/2., 50, 50+ci/2.], axis=0)
+prss = np.percentile(tpress, [50-ci/2., 50, 50+ci/2.], axis=0)
+temp = np.percentile(ttemp, [50-ci/2., 50, 50+ci/2.], axis=0)
+entr = np.percentile(tentr, [50-ci/2., 50, 50+ci/2.], axis=0)
+cool = np.percentile(tcool, [50-ci/2., 50, 50+ci/2.], axis=0)
+gmss = np.percentile(tgmass, [50-ci/2., 50, 50+ci/2.], axis=0)
+
+plot_rad_profs(r_pp, 1e2, 1e3, dens, temp, prss, entr, cool, gmss, plotdir)
+
+# mass
+m_vd = mass_r_delta(r_pp, cosmology)
+mass_prof, r_delta, m_delta = [[], [], []]
+for pars in flatchain:
+    res = m_r_delta(pars, fit, r_pp, cosmology)
+    mass_prof.append(res[0])
+    r_delta.append(res[1])
+    m_delta.append(res[2])
+lmss, mmss, hmss = np.percentile(mass_prof, [50-ci/2., 50, 50+ci/2.], axis=0)
+lr_d, mr_d, hr_d = np.percentile(r_delta, [50-ci/2., 50, 50+ci/2.], axis=0)
+lm_d, mm_d, hm_d = np.percentile(m_delta, [50-ci/2., 50, 50+ci/2.], axis=0)
+
+mass_plot(r_pp, mmss, lmss, hmss, mr_d, lr_d, hr_d, mm_d, lm_d, hm_d, m_vd, plotdir)
