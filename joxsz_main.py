@@ -13,9 +13,9 @@ import numpy as np
 import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
-                         CmptUPPTemperature, CmptMyMass, mydefPars, myvikhFunction, myprior, get_sz_like, getLikelihood, 
-                         prelimfit, traceplot, triangle, fitwithmod, best_fit_xsz, plot_best_sz, my_rad_profs, plot_rad_profs, 
-                         mass_r_delta, m_r_delta, mass_plot)
+                         CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like, 
+                         getLikelihood, prelimfit, traceplot, triangle, fitwithmod, best_fit_xsz, plot_best_sz, my_rad_profs, 
+                         plot_rad_profs, mass_r_delta, m_r_delta, mass_plot)
 from types import MethodType
 import h5py
 
@@ -126,9 +126,9 @@ ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
 # (single mode means only one beta model, as described in Vikhlinin+06)
 
 # change parameter names
-mb.CmptVikhDensity.vikhFunction = MethodType(myvikhFunction, ne_cmpt)
-mb.CmptVikhDensity.defPars = MethodType(mydefPars, ne_cmpt)
-mb.CmptVikhDensity.prior = MethodType(myprior, ne_cmpt)
+mb.CmptVikhDensity.vikhFunction = MethodType(mydens_vikhFunction, ne_cmpt)
+mb.CmptVikhDensity.defPars = MethodType(mydens_defPars, ne_cmpt)
+mb.CmptVikhDensity.prior = MethodType(mydens_prior, ne_cmpt)
 
 press_cmpt = CmptPressure('p', annuli)
 T_cmpt = CmptUPPTemperature('T', annuli, press_cmpt, ne_cmpt)
