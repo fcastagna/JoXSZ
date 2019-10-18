@@ -16,11 +16,11 @@ import corner
 plt.style.use('classic')
 
 class SZ_data:
-    """Dataset class."""
-
-    def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d,
-                 radius, sep, r_pp, ub, d_mat, filtering):
-
+    '''
+    Class for SZ data used in PreProFit
+    -----------------------------------
+    '''
+    def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering):
         self.phys_const = phys_const
         self.step = step
         self.kpc_as = kpc_as
@@ -47,18 +47,6 @@ def read_xy_err(filename, ncol):
     else:
         raise RuntimeError('Unrecognised file extension (not in fits, dat, txt)')
     return data[:ncol]
-
-def centdistmat(r, offset=0.):
-    '''
-    Create a symmetric matrix of distances from the radius vector
-    -------------------------------------------------------------
-    r = vector of negative and positive distances with a given step (center value has to be 0)
-    offset = value to be added to every distance in the matrix (default is 0)
-    ---------------------------------------------
-    RETURN: the matrix of distances centered on 0
-    '''
-    x, y = np.meshgrid(r, r)
-    return np.sqrt(x**2+y**2)+offset
 
 def read_beam(filename):
     '''
@@ -108,6 +96,18 @@ def mybeam(step, maxr_data, approx=False, filename=None, normalize=True, fwhm_be
         beam_2d /= beam_2d.sum()*step**2
     return beam_2d, fwhm_beam
 
+def centdistmat(r, offset=0.):
+    '''
+    Create a symmetric matrix of distances from the radius vector
+    -------------------------------------------------------------
+    r = vector of negative and positive distances with a given step (center value has to be 0)
+    offset = value to be added to every distance in the matrix (default is 0)
+    ---------------------------------------------
+    RETURN: the matrix of distances centered on 0
+    '''
+    x, y = np.meshgrid(r, r)
+    return np.sqrt(x**2+y**2)+offset
+
 def read_tf(filename, approx=False, loc=0, scale=0.02, c=0.95):
     '''
     Read the transfer function data from the specified file
@@ -151,47 +151,42 @@ def filt_image(wn_as, tf, side, step):
     karr = dist(side)/side*kmax
     return f(np.rot90(np.rot90(karr)))
 
-def getEdges(infg, bands):
-    """Get edges of annuli in arcmin.
-    There should be one more than the number of annuli.
-    """
-    data = np.loadtxt(infg % (bands[0][0], bands[0][1]))
+def getEdges(infg, bandE):
+    '''
+    Get edges of annuli in arcmin
+    -----------------------------
+    infg = foreground profiles file name
+    bandE = energy band in eV
+    ---------------------------------
+    RETURN: edges of annuli in arcmin
+    '''
+    data = np.loadtxt(infg %(bands[0][0], bands[0][1]))
     return np.hstack((data[0,0]-data[0,1], data[:,0]+data[:,1]))
 
 def loadBand(infg, inbg, bandE, rmf, arf):
-    """Load foreground and background profiles from file and construct
-    Band object."""
-
-    data = np.loadtxt(infg % (bandE[0], bandE[1]))
-
-    # radii of centres of annuli in arcmin
-    radii = data[:,0]
-    # half-width of annuli in arcmin
-    hws = data[:,1]
-    # number of counts (integer)
-    cts = data[:,2]
-    # areas of annuli, taking account of pixelization (arcmin^2)
-    areas = data[:,3]
-    # exposures (s)
-    exps = data[:,4]
-    # note: vignetting can be input into exposure or areas, but
-    # background needs to be consistent
-
-    # geometric area factor
-    geomareas = np.pi*((radii+hws)**2-(radii-hws)**2)
-    # ratio between real pixel area and geometric area
-    areascales = areas/geomareas
-
-    # this is the band object fitted to the data
+    '''
+    Load foreground and background profiles from file and construct band object
+    ---------------------------------------------------------------------------
+    infg = foreground profiles file name
+    inbg = background profiles file name
+    bandE = energy band in eV
+    rmf = Redistribution Matrix File name
+    arf = Auxiliary Response File name
+    -------------------------------------
+    RETURN: Band object 
+    '''
+    data = np.loadtxt(infg %(bandE[0], bandE[1])) # foreground profile
+    radii = data[:,0] # radii of centres of annuli in arcmin
+    hws = data[:,1] # half-width of annuli in arcmin
+    cts = data[:,2] # number of counts (integer)
+    areas = data[:,3] # areas of annuli, taking account of pixelization (arcmin^2)
+    exps = data[:,4] # exposures (s)
+    # note: vignetting can be input into exposure or areas, but background needs to be consistent
+    geomareas = np.pi*((radii+hws)**2-(radii-hws)**2) # geometric area factor
+    areascales = areas/geomareas # ratio between real pixel area and geometric area
     band = mb.Band(bandE[0]/1000, bandE[1]/1000, cts, rmf, arf, exps, areascales=areascales)
-
-    # this is the background profile
-    # load rates in cts/s/arcmin^2
-    backd = np.loadtxt(inbg % (bandE[0], bandE[1]))
-    # band.backrates = backd[:,5]
-    # to read, and shorter, a bkg file over a larger radial range
-    # e' in col5
-    band.backrates = backd[0:radii.size, 4]
+    backd = np.loadtxt(inbg % (bandE[0], bandE[1])) # background profile
+    band.backrates = backd[0:radii.size, 4] # rates in (cts/s/arcmin^2)
     lastmyrad = backd[0:radii.size, 0]
     if (abs(lastmyrad[-1]-radii[-1]) > .001):
          print('Problem while reading bg file', lastmyrad[-1], radii[-1])
@@ -199,7 +194,10 @@ def loadBand(infg, inbg, bandE, rmf, arf):
     return band
 
 class CmptPressure(mb.Cmpt):
-
+    '''
+    Class to parametrize the pressure profile
+    -----------------------------------------    
+    '''
     def __init__(self, name, annuli):
         mb.Cmpt.__init__(self, name, annuli)
 
@@ -320,7 +318,7 @@ def get_sz_like(self, output='ll'):
     conv_2d = fftconvolve(y_2d, self.data.sz.beam_2d, 'same')*self.data.sz.step**2
     FT_map_in = fft2(conv_2d)
     map_out = np.real(ifft2(FT_map_in*self.data.sz.filtering))
-    t_prof = self.model.T_cmpt.temp_fun(self.pars, self.data.sz.r_pp[:self.data.sz.ub])
+    t_prof = self.model.T_cmpt.temp_fun(self.pars, self.data.sz.r_pp[:self.data.sz.ub])*self.pars['T_{SZ}/T_X'].val
     h = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
                  np.append(t_prof, t_prof), 'cubic', bounds_error=False, fill_value=(t_prof[-1], t_prof[-1]))
     map_prof = map_out[conv_2d.shape[0]//2, conv_2d.shape[0]//2:]*self.data.sz.convert(np.append(h(0), t_prof))
