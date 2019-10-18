@@ -1,15 +1,15 @@
-likelihood = -308.958 + -23.609 + 1.36733 = -331.2
-P_0 = <Param: val=0.245, minval=0, maxval=20, frozen=False>
-Z = <Param: val=0.0194, minval=0, maxval=1e+99, frozen=False>
+likelihood = -302.715 + -29.977 + 1.37535 = -331.317
+P_0 = <Param: val=0.223, minval=0, maxval=20, frozen=False>
+Z = <Param: val=0.0409, minval=0, maxval=1, frozen=False>
 \alpha = <Param: val=0, minval=-1, maxval=2, frozen=True>
-\beta = <Param: val=0.6, minval=0, maxval=4, frozen=False>
-\epsilon = <Param: val=8.42, minval=0, maxval=10, frozen=False>
+\beta = <Param: val=0.615, minval=0, maxval=4, frozen=False>
+\epsilon = <Param: val=2.59, minval=0, maxval=10, frozen=False>
 \gamma = <Param: val=3, minval=0, maxval=10, frozen=True>
-a = <Param: val=1.77, minval=0.1, maxval=10, frozen=False>
-b = <Param: val=5.14, minval=0.1, maxval=15, frozen=False>
-backscale = <ParamGaussian: val=0.982, prior_mu=1, prior_sigma=0.1, frozen=False>
+a = <Param: val=2.32, minval=0.1, maxval=10, frozen=False>
+b = <Param: val=3.85, minval=0.1, maxval=15, frozen=False>
+backscale = <ParamGaussian: val=0.987, prior_mu=1, prior_sigma=0.1, frozen=False>
 c = <Param: val=0.014, minval=0, maxval=3, frozen=True>
-log(r_c) = <Param: val=2, minval=-1, maxval=3.46, frozen=False>
-log(r_s) = <Param: val=3.05, minval=0, maxval=3.46, frozen=False>
+log(r_c) = <Param: val=2.02, minval=-1, maxval=3.46, frozen=False>
+log(r_s) = <Param: val=2.89, minval=0, maxval=3.46, frozen=False>
 n_0 = <Param: val=-1.56, minval=-7, maxval=2, frozen=False>
-r_p = <Param: val=350, minval=5, maxval=3e+03, frozen=False>
+r_p = <Param: val=243, minval=5, maxval=3e+03, frozen=False>
