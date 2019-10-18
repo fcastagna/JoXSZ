@@ -4,7 +4,7 @@ import numpy as np
 from scipy import optimize
 from scipy.stats import norm
 import mbproj2 as mb
-from mbproj2.physconstants import keV_erg, kpc_cm, mu_g, G_cgs, solar_mass_g
+from mbproj2.physconstants import (keV_erg, kpc_cm, mu_g, G_cgs, solar_mass_g, ne_nH, Mpc_cm, yr_s, mu_e, Mpc_km)
 from abel.direct import direct_transform
 from scipy.interpolate import interp1d
 from scipy.signal import fftconvolve
@@ -13,6 +13,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import corner
 
+#plt.rc('font', **font)
 plt.style.use('classic')
 
 class SZ_data:
@@ -227,8 +228,7 @@ class CmptPressure(mb.Cmpt):
         a = pars['a'].val
         b = pars['b'].val
         c = pars['c'].val
-        return -P_0*(c+b*(r_kpc/r_p)**a)/(
-                r_p*(r_kpc/r_p)**(c+1)*(1+(r_kpc/r_p)**a)**((b-c+a)/a))
+        return -P_0*(c+b*(r_kpc/r_p)**a)/(r_p*(r_kpc/r_p)**(c+1)*(1+(r_kpc/r_p)**a)**((b-c+a)/a))
 
     def computeProf(self, pars):
         return self.press_fun(pars, self.annuli.midpt_kpc)
@@ -278,40 +278,30 @@ class CmptMyMass(mb.Cmpt):
 def mydefPars(self):
     pars = {
         'n_0': mb.Param(-3., minval=-7., maxval=2.),
-        'beta': mb.Param(2/3., minval=0., maxval=4.),
+        r'\beta': mb.Param(2/3., minval=0., maxval=4.),
         'log(r_c)': mb.Param(2.3, minval=-1., maxval=3.7),
         'log(r_s)': mb.Param(2.7, minval=0, maxval=3.7),
-        'alpha': mb.Param(0., minval=-1, maxval=2.),
-        'epsilon': mb.Param(3., minval=0., maxval=5.),
-        'gamma': mb.Param(3., minval=0., maxval=10, frozen=True),
+        r'\alpha': mb.Param(0., minval=-1, maxval=2.),
+        r'\epsilon': mb.Param(3., minval=0., maxval=5.),
+        r'\gamma': mb.Param(3., minval=0., maxval=10, frozen=True),
         }
     return pars
 
 def myvikhFunction(self, pars, radii_kpc):
     n_0 = 10**pars['n_0'].val
-    beta = pars['beta'].val
+    beta = pars[r'\beta'].val
     r_c = 10**pars['log(r_c)'].val
     r_s = 10**pars['log(r_s)'].val
-    alpha = pars['alpha'].val
-    epsilon = pars['epsilon'].val
-    gamma = pars['gamma'].val
-
+    alpha = pars[r'\alpha'].val
+    epsilon = pars[r'\epsilon'].val
+    gamma = pars[r'\gamma'].val
     r = radii_kpc
-
-    retn_sqd = (
-        n_0**2 *
-        (r/r_c)**(-alpha) / (
-            (1+r**2/r_c**2)**(3*beta-0.5*alpha) *
-            (1+(r/r_s)**gamma)**(epsilon/gamma)
-            )
-        )
+    retn_sqd = (n_0**2*(r/r_c)**(-alpha)/((1+r**2/r_c**2)**(3*beta-0.5*alpha)*(1+(r/r_s)**gamma)**(epsilon/gamma)))
     if self.mode == 'double':
         n_02 = 10**pars['n_{02}'].val
         r_c2 = 10**pars['log(r_{c2})'].val
-        beta_2 = pars['beta_2'].val
-
+        beta_2 = pars[r'\beta_2'].val
         retn_sqd += n_02**2 / (1 + r**2/r_c2**2)**(3*beta_2)
-
     return np.sqrt(retn_sqd)
 
 def myprior(self, pars):
@@ -323,8 +313,7 @@ def myprior(self, pars):
 
 def get_sz_like(self, output='ll'):
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
-    ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', 
-                          backend='Python')[:self.data.sz.ub]
+    ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', backend='Python')[:self.data.sz.ub]
     y = (kpc_cm*self.data.sz.phys_const[1]/self.data.sz.phys_const[0]*ab)
     f = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
                  np.append(y, y), 'cubic', bounds_error=False, fill_value=(0, 0))
@@ -337,8 +326,7 @@ def get_sz_like(self, output='ll'):
                  np.append(t_prof, t_prof), 'cubic', bounds_error=False, fill_value=(t_prof[-1], t_prof[-1]))
     map_prof = map_out[conv_2d.shape[0]//2, conv_2d.shape[0]//2:]*self.data.sz.convert(np.append(h(0), t_prof))
     g = interp1d(self.data.sz.radius[self.data.sz.sep:], map_prof, 'cubic', fill_value='extrapolate')
-    chisq = np.sum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/
-                    self.data.sz.flux_data[2])**2)
+    chisq = np.sum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/self.data.sz.flux_data[2])**2)
     log_lik = -chisq/2
     if output == 'll':
         return log_lik
@@ -354,20 +342,17 @@ def getLikelihood(self, vals=None):
 
     Also include are the priors from the various components
     """
-
     if vals is not None:
         self.updateThawed(vals)
 
     # prior on parameters
     parprior = sum((self.pars[p].prior() for p in self.pars))
     if not np.isfinite(parprior):
-        # don't want to evaluate profiles for invalid parameters
         return -np.inf
-
-    m_prof = self.mass_cmpt.mass_fun(self.pars, self.data.sz.r_pp) 
-    if not(all(np.gradient(m_prof, 1) > 0)):
-        return -np.inf
-
+    if self.exclude_unphy_mass:
+        m_prof = self.mass_cmpt.mass_fun(self.pars, self.data.sz.r_pp) 
+        if not(all(np.gradient(m_prof, 1) > 0)):
+            return -np.inf
     profs = self.calcProfiles()
     like = self.likeFromProfs(profs)
     prior = self.model.prior(self.pars)+parprior
@@ -376,12 +361,10 @@ def getLikelihood(self, vals=None):
 
     if mb.fit.debugfit and (totlike-self.bestlike) > 0.1:
         self.bestlike = totlike
-        #print("Better fit %.1f" % totlike)
         with mb.utils.AtomicWriteFile("%s/fit.dat" % self.savedir) as fout:
             mb.utils.uprint("likelihood = %g + %g + %g = %g" % (like, sz_like, prior, totlike), file=fout)
             for p in sorted(self.pars):
                 mb.utils.uprint("%s = %s" % (p, self.pars[p]), file=fout)
-
     return totlike
 
 def prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir='./'):
@@ -404,7 +387,6 @@ def prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir='./'):
     plt.subplots_adjust(wspace=0.45, hspace=0.35)	
     pdf.savefig()
     pdf.close()
-    plt.clf()
 
 def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, plotdir='./'):
     '''
@@ -418,6 +400,7 @@ def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, plotdir='./')
     ppp = number of plots per page
     plotdir = directory where to place the plot
     '''
+    plt.clf()
     nw_step = int(np.ceil(nw/plotw))
     param_latex = ['${}$'.format(i) for i in param_names]
     pdf = PdfPages(plotdir+'traceplot.pdf')
@@ -426,7 +409,7 @@ def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, plotdir='./')
         for j in range(nw)[::nw_step]:
             plt.plot(np.arange(nsteps)+1, mysamples[j::nw,i], linewidth=.2)
             plt.tick_params(labelbottom=False)
-        plt.ylabel('%s' %param_latex[i], fontdict={'fontsize': 20})
+        plt.ylabel('%s' %param_latex[i], fontdict={'fontsize': 18})
         if (abs((i+1)%ppp) < 0.01):
             plt.tick_params(labelbottom=True)
             plt.xlabel('Iteration number')
@@ -451,28 +434,49 @@ def triangle(mysamples, param_names, plotdir='./'):
     plt.clf()
     pdf = PdfPages(plotdir+'cornerplot.pdf')
     corner.corner(mysamples, labels=param_latex, quantiles=np.repeat(.5, len(param_latex)), show_titles=True, 
-                  title_kwargs={'fontsize': 20}, label_kwargs={'fontsize': 30})
+                  title_kwargs={'fontsize': 15}, label_kwargs={'fontsize': 25})
     pdf.savefig()
     pdf.close()
 
-def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, plotdir='./'):
+def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, sz, flatchain, fit, ci, plotdir='./'):
     plt.clf()
-    pdf = PdfPages(plotdir+'fitwithmod.pdf')
+    pdf = PdfPages(plotdir+'fitall.pdf')
+    f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(8, 6))
     for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
-        plt.subplot(2, 3, i+1)
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.axis([0.08, 1.2*xfig.max(), 1, 1.2*(hhi/geomareas/band.areascales).max()])
-        plt.xlabel('r [arcmin]')
-        plt.ylabel('counts / area [cts arcmin$^{-2}$]')
-        plt.text(0.1, 1.2, '[%g-%g] keV' % (band.emin_keV, band.emax_keV))	
-        plt.errorbar(xfig, mmed/geomareas/band.areascales, color='red')	
-        plt.fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold')
-        plt.plot(xfig, band.backrates*band.exposures, linestyle=':', color='b')
-        plt.scatter(xfig, band.cts/geomareas/band.areascales, color='darkblue')
-        plt.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
-                     yerr=band.cts**0.5/geomareas/band.areascales, fmt='o')
-    plt.subplots_adjust(wspace=0.45, hspace=0.35)	
+        eval('ax'+str(i+1)).set_xscale('log')
+        eval('ax'+str(i+1)).set_yscale('log')
+        eval('ax'+str(i+1)).axis([0.08, 1.2*xfig.max(), 1, 5e3])#1, 1.2*(hhi/geomareas/band.areascales).max()])
+        eval('ax'+str(i+1)).text(.5, 1e3, '[%g-%g] keV' % (band.emin_keV, band.emax_keV))	
+        eval('ax'+str(i+1)).errorbar(xfig, mmed/geomareas/band.areascales, color='r', label='_nolegend_')
+        eval('ax'+str(i+1)).fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold', 
+                                         label='_nolegend_')
+        eval('ax'+str(i+1)).errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
+                                     yerr=band.cts**0.5/geomareas/band.areascales, fmt='o', markersize=2, label='_nolegend_')
+    ax1.set_ylabel('$S_X$ (counts·s$^{-1}$·arcmin$^{-2}$)')
+    ax4.set_ylabel('$S_X$ (counts·s$^{-1}$·arcmin$^{-2}$)')
+    ax4.set_xlabel('Radius (arcmin)')
+    ax5.set_xlabel('Radius (arcmin)')
+    ax3.tick_params(labelbottom=True)
+    ax2.tick_params(labelleft=False)
+    ax3.tick_params(labelleft=False)
+    ax5.tick_params(labelleft=False)
+    ax5.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, yerr=band.cts**0.5/geomareas/band.areascales, 
+                 color='b', fmt='o', markersize=2, label='X-ray data')
+    med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz, flatchain, fit, ci)
+    sep = sz.radius.size//2
+    r_am = sz.radius[sep:sep+med_xsz.size]/60
+    ax6.errorbar(sz.flux_data[0]/60, sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=2, color='black', label='SZ data')
+    ax6.errorbar(r_am, med_xsz, color='r', label='Best-fit')
+    ax6.fill_between(r_am, lo_xsz, hi_xsz, color='gold', label='95% CI')
+    ax6.set_xlabel('Radius (arcmin)')
+    ax6.set_ylabel('$S_{SZ}$ (mJy·beam$^{.1}$)')
+    ax6.set_xlim(-2/60, 127/60)
+    ax6.set_xscale('linear')
+    ax6.yaxis.set_label_position("right")
+    ax6.yaxis.tick_right()
+    ax6.tick_params('y', labelsize=8)
+    hand_sz, lab_sz = ax6.get_legend_handles_labels()
+    hand_x, lab_x = ax5.get_legend_handles_labels()
     pdf.savefig()
     pdf.close()
 
@@ -488,9 +492,9 @@ def best_fit_xsz(sz, chain, fit, ci):
     return med, lo, hi
 
 def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
+    plt.clf()
     sep = sz.radius.size//2
     pdf = PdfPages(plotdir+'best_sz.pdf')
-    plt.clf()
     plt.title('Compton parameter profile - best fit with %s' % ci+'% CI')
     plt.plot(sz.radius[sep:sep+med_xz.size], med_xz, color='b')
     plt.plot(sz.radius[sep:sep+med_xz.size], lo_xz, ':', color='b', label='_nolegend_')
@@ -505,29 +509,93 @@ def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
     pdf.savefig()
     pdf.close()
 
-def plot_profiles(ax, name, data, ylab='', rname='r_kpc', nrow=None):
-    r = data[rname][:,0]
-    med, low, hig = data[name].T
-    if nrow == None:
-        nrow = r.size
-    ax.plot(r[:nrow], med[:nrow])
-    ax.fill_between(r[:nrow], med[:nrow]+low[:nrow], med[:nrow]+hig[:nrow], color='powderblue')
-    ax.set_xlim(100, 1100)
-    ax.set_ylabel(ylab)
-    ax.set_yscale('log')
+def ne_vol(r_kpc, low_r, hig_r, ne, pars):
+    return ne.vikhFunction(pars, r_kpc)*mu_e*mu_g/solar_mass_g*4/3*np.pi*(hig_r**3-low_r**3)
 
-def plot_rad_profs(data, plotdir='./'):
+def frac_int(edges):
+    # have a look at mbproj2.phys.fracMassHalf
+    low_r, hig_r = edges[:-1], edges[1:]
+    volinside = (np.pi*(-8*low_r**3+(low_r+hig_r)**3))/6
+    voloutside = 4*np.pi*(hig_r**3/3-(low_r+hig_r)**3/24)
+    return volinside/(volinside+voloutside)
+
+def my_rad_profs(vals, r_kpc, fit):
+    fit.updateThawed(vals)
+    pars = fit.pars
+    dens = fit.model.ne_cmpt.vikhFunction(pars, r_kpc)
+    temp = fit.model.T_cmpt.temp_fun(pars, r_kpc)
+    press = fit.press.press_fun(pars, r_kpc)
+    entr = temp/dens**(2/3)
+    cool = (5/2)*dens*(1+1/ne_nH)*temp*keV_erg/(fit.data.annuli.ctrate.getFlux(
+        temp, np.repeat(pars['Z'].val, temp.size), dens)*4*np.pi*(fit.data.annuli.cosmology.D_L*Mpc_cm)**2)/yr_s
+    edg_cm = np.append(r_kpc[0]/2, r_kpc+r_kpc[0]/2)*kpc_cm
+    nevol = np.array([ne_vol(r_kpc[j], edg_cm[j], edg_cm[j+1], fit.model.ne_cmpt, pars) for j in range(r_kpc.size)])
+    gmass = nevol*frac_int(edg_cm)+np.concatenate(([0], np.cumsum(nevol)[:-1]))
+    return dens, temp, press, entr, cool, gmass
+
+def plot_rad_profs(r_pp, xmin, xmax, dens, temp, prss, entr, cool, gmss, plotdir='./'):
     pdf = PdfPages(plotdir+'radial_profiles.pdf')
-    f, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, sharex = True)
-    plot_profiles(ax1, 'ne_pcm3', data, 'Density (cm$^{-3}$)', nrow=12)
-    plot_profiles(ax2, 'T_keV', data, 'Temperature (keV)', nrow=12)
-    ax2.set_yscale('linear')
-    plot_profiles(ax3, 'Pe_keVpcm3', data, 'Pressure (keV cm$^{-3}$)', nrow=12)
-    plot_profiles(ax4, 'Se_keVcm2', data, 'Entropy (keV cm$^2$)', nrow=12)
-    plot_profiles(ax5, 'tcool_yr', data, 'Cooling time (Gyr)', nrow=12)
-    plot_profiles(ax6, 'Mgascuml_Msun', data, 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$', nrow=12)
+    f, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, sharex=True)
+    ind = np.where((r_pp > xmin) & (r_pp < xmax))
+    e_ind = np.concatenate(([ind[0][0]-1], ind[0], [ind[0][-1]+1]), axis=0)
+    ax1.set_xscale('log')
+    [i.set_yscale('log') for i in (ax1, ax2, ax3, ax4, ax5, ax6)]
+    ax1.set_xlim(xmin, xmax)
+    for (i, j) in enumerate([[dens, 'Density (cm$^{-3}$)'], [temp, 'Temperature (keV)'], [prss, 'Pressure (keV cm$^{-3}$)'], 
+                             [entr, 'Entropy (keV cm$^2$)'], [cool, 'Cooling time (Gyr)'], 
+                             [gmss, 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']]):
+        eval('ax'+str(i+1)).plot(r_pp[e_ind], j[0][1][e_ind])
+        eval('ax'+str(i+1)).fill_between(r_pp[e_ind], j[0][0][e_ind], j[0][2][e_ind], color='powderblue')
+        eval('ax'+str(i+1)).set_ylabel(j[1])
+    ax5.set_xlabel('Radius (kpc)')
+    ax6.set_xlabel('Radius (kpc)')
     ax2.yaxis.set_label_position('right')
     ax4.yaxis.set_label_position('right')
     ax6.yaxis.set_label_position('right')
+    pdf.savefig()
+    pdf.close()
+
+def mass_r_delta(r_kpc, cosmo, delta=500):
+    # H0 (s^-1)
+    H0_s = cosmo.H0/Mpc_km
+    # H(z) (s^-1)
+    HZ = H0_s*np.sqrt(cosmo.WM*(1+cosmo.z)**3+cosmo.WV)
+    # critical density (g cm^-3)
+    rho_c = 3*HZ**2/(8*np.pi*G_cgs)
+    # radius (cm)
+    r_cm = r_kpc*kpc_cm   
+    # M(< r_delta) (g*solar masses)
+    mass_r_delta = 4/3*np.pi*rho_c*delta*r_cm**3/solar_mass_g
+    # m_HSE = dr_p(fit_xz.pars, r_kpc)
+    return mass_r_delta
+
+def m_r_delta(pars, fit, r_kpc, cosmo, delta=500):
+    fit.updateThawed(pars)
+    m_prof = fit.mass_cmpt.mass_fun(fit.pars, r_kpc)
+    r_delta = optimize.newton(lambda r: fit.mass_cmpt.mass_fun(fit.pars, r)-mass_r_delta(r, cosmo, delta), 700)
+    m_delta = fit.mass_cmpt.mass_fun(fit.pars, r_delta)
+    return m_prof, r_delta, m_delta
+
+def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_md, low_md, hig_md, m_vd, plotdir='./'):
+    pdf = PdfPages(plotdir+'r500+m500.pdf')
+    plt.errorbar(r_kpc, med_mass)
+    plt.fill_between(r_kpc, low_mass, hig_mass, color='powderblue')
+    plt.errorbar(r_kpc, m_vd, color='g')    
+    plt.vlines(med_rd, 0, med_md, linestyle='--', color='black')
+    plt.vlines(low_rd, 0, low_md, linestyle=':', color='black')
+    plt.vlines(hig_rd, 0, hig_md, linestyle=':', color='black')
+    plt.hlines(med_md, 0, med_rd, linestyle='--', color='black')
+    plt.hlines(low_md, 0, low_rd, linestyle=':', color='black')
+    plt.hlines(hig_md, 0, hig_rd, linestyle=':', color='black')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(100, 1300)
+    plt.ylim(1e13, 1e15)
+    plt.xlabel('Radius (kpc)')
+    plt.ylabel('Total mass (M$_\odot$)')
+
+    plt.text(80, med_md, '$M_{500}$')
+    plt.text(low_rd, 7e12, '$r_{500}$')
+    plt.text(3e2, 2.5e13, '$M(r)=\\frac{4}{3} \\pi r^3 500 \\rho_c(z)$', rotation=53, rotation_mode='anchor')
     pdf.savefig()
     pdf.close()
