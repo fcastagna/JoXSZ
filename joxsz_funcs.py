@@ -4,8 +4,7 @@ import numpy as np
 from scipy import optimize
 from scipy.stats import norm
 import mbproj2 as mb
-from mbproj2.physconstants import (keV_erg, kpc_cm, mu_g, G_cgs, solar_mass_g,
-                                   ne_nH, Mpc_cm, yr_s, mu_e, Mpc_km)
+from mbproj2.physconstants import (keV_erg, kpc_cm, mu_g, G_cgs, solar_mass_g, ne_nH, Mpc_cm, yr_s, mu_e, Mpc_km)
 from abel.direct import direct_transform
 from scipy.interpolate import interp1d
 from scipy.signal import fftconvolve
