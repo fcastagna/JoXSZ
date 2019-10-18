@@ -160,6 +160,8 @@ pars[r'\alpha'].frozen = True
 #pars['b'].frozen = True
 pars['c'].frozen = True
 
+pars['T_{SZ}/T_X'] = mb.Param(1, minval=.1, maxval=10., frozen=True)
+
 # rimpiazzo di veusz
 edges = annuli.edges_arcmin
 xfig = 0.5*(edges[1:]+edges[:-1])
@@ -223,7 +225,12 @@ plot_best_sz(sz_data, med_xsz, lo_xsz, hi_xsz, ci, plotdir)
 triangle(mysamples, mcmc_thawed, plotdir)
 
 # Radial profiles
-tdens = ttemp = tpress = tentr = tcool = tgmass = np.zeros((flatchain.shape[0], r_pp.size))
+tdens = np.zeros((flatchain.shape[0], r_pp.size))
+ttemp = tdens.copy()
+tpress = tdens.copy() 
+tentr = tdens.copy()
+tcool = tdens.copy()
+tgmass = tdens.copy()
 for j in range(flatchain.shape[0]):
     tdens[j], ttemp[j], tpress[j], tentr[j], tcool[j], tgmass[j] = my_rad_profs(flatchain[j,:], r_pp, fit)
 dens = np.percentile(tdens, [50-ci/2., 50, 50+ci/2.], axis=0)
