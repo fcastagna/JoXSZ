@@ -10,7 +10,7 @@ As an example, we show the application of `JoXSZ` on the high-redshift cluster o
 Beam data and transfer function data come from the [NIKA data release](http://lpsc.in2p3.fr/NIKA2LPSZ/nika2sz.release.php), while X-ray data come from Chandra (reference...).
 
 ### Requirements
-`preprofit` requires the following:
+`JoXSZ` requires the following:
 - [mbproj2](https://github.com/jeremysanders/mbproj2)
 - [PyAbel](https://github.com/PyAbel/PyAbel)
 - [numpy](http://www.numpy.org/)
