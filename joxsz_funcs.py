@@ -364,8 +364,8 @@ def get_sz_like(self, output='ll'):
         'chisq' = Chi-Squared
         'pp' = pressure profile
         'flux' = flux profile
-    -------------------------------------------------------------------------------------
-    RETURN: log-posterior probability or -inf whether theta is out of the parameter space
+    --------------------------------------------------------------------------
+    RETURN: desired output or -inf whether theta is out of the parameter space
     '''
     # pressure profile
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
@@ -429,7 +429,7 @@ def getLikelihood(self, vals=None):
     prior = self.model.prior(self.pars)+parprior
     # JoXSZ log-likelihood
     totlike = float(like+prior+sz_like)
-    # print best-fitting parameters
+    # print best fitting parameters
     if mb.fit.debugfit and (totlike-self.bestlike) > 0.1:
         self.bestlike = totlike
         with mb.utils.AtomicWriteFile("%s/fit.dat" % self.savedir) as fout:
@@ -508,14 +508,26 @@ def triangle(mysamples, param_names, plotdir='./'):
     pdf.savefig()
     pdf.close()
 
-def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, sz, flatchain, fit, ci, plotdir='./'):
+def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, plotdir='./'):
+    '''
+    Surface brightness profiles (points with error bars) and best fitting profiles with CI
+    --------------------------------------------------------------------------------------
+    data = Data object containing information on the X-ray bands and SZ data
+    lo, med, hi = best (median) fitting profiles with CI
+    geomareas = annuli areas for X-ray data
+    xfig, errxfig = radii of X-ray data and related errors
+    flatchain = array of sampled values in the chain
+    fit = Fit object
+    ci = confidence interval level
+    plotdir = directory where to place the plot
+    '''
     plt.clf()
     pdf = PdfPages(plotdir+'fitall.pdf')
     f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(8, 6))
     for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
         eval('ax'+str(i+1)).set_xscale('log')
         eval('ax'+str(i+1)).set_yscale('log')
-        eval('ax'+str(i+1)).axis([0.08, 1.2*xfig.max(), 1, 5e3])#1, 1.2*(hhi/geomareas/band.areascales).max()])
+        eval('ax'+str(i+1)).axis([0.08, 1.2*xfig.max(), 1, 5e3])
         eval('ax'+str(i+1)).text(.5, 1e3, '[%g-%g] keV' % (band.emin_keV, band.emax_keV))	
         eval('ax'+str(i+1)).errorbar(xfig, mmed/geomareas/band.areascales, color='r', label='_nolegend_')
         eval('ax'+str(i+1)).fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold', 
@@ -535,7 +547,8 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, sz, flatchain, fit, 
     med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz, flatchain, fit, ci)
     sep = sz.radius.size//2
     r_am = sz.radius[sep:sep+med_xsz.size]/60
-    ax6.errorbar(sz.flux_data[0]/60, sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=2, color='black', label='SZ data')
+    ax6.errorbar(sz.flux_data[0]/60, sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=2, color='black', 
+                 label='SZ data')
     ax6.errorbar(r_am, med_xsz, color='r', label='Best-fit')
     ax6.fill_between(r_am, lo_xsz, hi_xsz, color='gold', label='95% CI')
     ax6.set_xlabel('Radius (arcmin)')
@@ -547,66 +560,97 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, sz, flatchain, fit, 
     ax6.tick_params('y', labelsize=8)
     hand_sz, lab_sz = ax6.get_legend_handles_labels()
     hand_x, lab_x = ax5.get_legend_handles_labels()
+    f.legend([hand_sz[2], hand_sz[0], hand_x[0], hand_sz[1]], [lab_sz[2], lab_sz[0], lab_x[0], lab_sz[1]], 
+             loc='upper center', bbox_to_anchor= (.5, 0.98), ncol=4, borderaxespad=0)
     pdf.savefig()
     pdf.close()
 
-def best_fit_xsz(sz, chain, fit, ci):
-    profs = []
-    for pars in chain[::10]:
-        fit.updateThawed(pars)
-        out_prof = fit.get_sz_like(output='flux')
-        profs.append(out_prof)
-    profs = np.row_stack(profs)
-    med = np.median(profs, axis=0)
-    lo, hi = np.percentile(profs, [50-ci/2, 50+ci/2], axis=0)
-    return med, lo, hi
-
-def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
-    plt.clf()
-    sep = sz.radius.size//2
-    pdf = PdfPages(plotdir+'best_sz.pdf')
-    plt.title('Compton parameter profile - best fit with %s' % ci+'% CI')
-    plt.plot(sz.radius[sep:sep+med_xz.size], med_xz, color='b')
-    plt.plot(sz.radius[sep:sep+med_xz.size], lo_xz, ':', color='b', label='_nolegend_')
-    plt.plot(sz.radius[sep:sep+med_xz.size], hi_xz, ':', color='b', label='_nolegend_')
-    plt.scatter(sz.flux_data[0], sz.flux_data[1], color='black')
-    plt.errorbar(sz.flux_data[0], sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=4, color='black')
-    plt.axhline(0, linestyle=':', color='black', label='_nolegend_')
-    plt.xlabel('Radius (arcsec)')
-    plt.ylabel('y * 10$^{4}$')
-    plt.xlim(-2, 127)
-    plt.legend(('(SZ + X) fit', 'SZ data'), loc='lower right')
-    pdf.savefig()
-    pdf.close()
-
-def ne_vol(r_kpc, low_r, hig_r, ne, pars):
-    return ne.vikhFunction(pars, r_kpc)*mu_e*mu_g/solar_mass_g*4/3*np.pi*(hig_r**3-low_r**3)
+# =============================================================================
+# def best_fit_xsz(sz, chain, fit, ci):
+#     profs = []
+#     for pars in chain[::10]:
+#         fit.updateThawed(pars)
+#         out_prof = fit.get_sz_like(output='flux')
+#         profs.append(out_prof)
+#     profs = np.row_stack(profs)
+#     med = np.median(profs, axis=0)
+#     lo, hi = np.percentile(profs, [50-ci/2, 50+ci/2], axis=0)
+#     return med, lo, hi
+# 
+# def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
+#     plt.clf()
+#     sep = sz.radius.size//2
+#     pdf = PdfPages(plotdir+'best_sz.pdf')
+#     plt.title('Compton parameter profile - best fit with %s' % ci+'% CI')
+#     plt.plot(sz.radius[sep:sep+med_xz.size], med_xz, color='b')
+#     plt.plot(sz.radius[sep:sep+med_xz.size], lo_xz, ':', color='b', label='_nolegend_')
+#     plt.plot(sz.radius[sep:sep+med_xz.size], hi_xz, ':', color='b', label='_nolegend_')
+#     plt.scatter(sz.flux_data[0], sz.flux_data[1], color='black')
+#     plt.errorbar(sz.flux_data[0], sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=4, color='black')
+#     plt.axhline(0, linestyle=':', color='black', label='_nolegend_')
+#     plt.xlabel('Radius (arcsec)')
+#     plt.ylabel('y * 10$^{4}$')
+#     plt.xlim(-2, 127)
+#     plt.legend(('(SZ + X) fit', 'SZ data'), loc='lower right')
+#     pdf.savefig()
+#     pdf.close()
+# =============================================================================
 
 def frac_int(edges):
-    # have a look at mbproj2.phys.fracMassHalf
-    low_r, hig_r = edges[:-1], edges[1:]
-    volinside = (np.pi*(-8*low_r**3+(low_r+hig_r)**3))/6
-    voloutside = 4*np.pi*(hig_r**3/3-(low_r+hig_r)**3/24)
+    '''
+    Fraction of mass of shell which is in the inner and outer halves of the midpoint
+    --------------------------------------------------------------------------------
+    edges = edges of the shells containing X-ray data (cm)
+    ----------------------------------------------
+    RETURN: the fraction of mass in the inner half
+    '''
+    low_r, hig_r = edges[:-1], edges[1:]    
+    volinside = (low_r+hig_r)**3/24-low_r**3/3
+    voloutside = hig_r**3/3-(low_r+hig_r)**3/24
     return volinside/(volinside+voloutside)
 
 def my_rad_profs(vals, r_kpc, fit):
+    ''' 
+    Compute the thermodynamic radial profiles
+    -----------------------------------------
+    vals = parameter values
+    r_kpc = radius (kpc)
+    fit = Fit object
+    --------------------------------------------------------------------------------
+    RETURN: density(cm^{-3}), temperature (keV), pressure (keV*cm^{-3}), 
+            entropy (keV*cm^2), cooling time (Gyr), cumulative gas mass (solar mass)
+    '''
     fit.updateThawed(vals)
     pars = fit.pars
+    # density
     dens = fit.model.ne_cmpt.vikhFunction(pars, r_kpc)
+    # temperature
     temp = fit.model.T_cmpt.temp_fun(pars, r_kpc)
+    # pressure
     press = fit.press.press_fun(pars, r_kpc)
+    # entropy
     entr = temp/dens**(2/3)
-    cool = (5/2)*dens*(1+1/ne_nH)*temp*keV_erg/(fit.data.annuli.ctrate.getFlux(
-        temp, np.repeat(pars['Z'].val, temp.size), dens)*4*np.pi*(fit.data.annuli.cosmology.D_L*Mpc_cm)**2)/yr_s
+    # cooling time
+    flux = fit.data.annuli.ctrate.getFlux(temp, np.repeat(pars['Z'].val, temp.size), dens)
+    cool = (5/2)*dens*(1+1/ne_nH)*temp*keV_erg/(flux*4*np.pi*(fit.data.annuli.cosmology.D_L*Mpc_cm)**2)/yr_s
+    # cumulative gas mass
     edg_cm = np.append(r_kpc[0]/2, r_kpc+r_kpc[0]/2)*kpc_cm
-    nevol = np.array([ne_vol(r_kpc[j], edg_cm[j], edg_cm[j+1], fit.model.ne_cmpt, pars) for j in range(r_kpc.size)])
-    gmass = nevol*frac_int(edg_cm)+np.concatenate(([0], np.cumsum(nevol)[:-1]))
-    return dens, temp, press, entr, cool, gmass
+    mgas = dens*mu_e*mu_g/solar_mass_g*4/3*np.pi*(edg_cm[1:]**3-edg_cm[:-1]**3)
+    cmgas = mgas*frac_int(edg_cm)+np.concatenate(([0], np.cumsum(mgas)[:-1]))
+    return dens, temp, press, entr, cool, cmgas
 
-def plot_rad_profs(r_pp, xmin, xmax, dens, temp, prss, entr, cool, gmss, plotdir='./'):
+def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, plotdir='./'):
+    '''
+    Plot the thermodynamic radial profiles
+    --------------------------------------
+    r_kpc = radius (kpc)
+    xmin, xmax = x-axis boundaries for the plot
+    dens, temp, press, entr, cool, gmss = thermodynamic best fitting profiles (median and CI)
+    plotdir = directory where to place the plot
+    '''
     pdf = PdfPages(plotdir+'radial_profiles.pdf')
     f, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, sharex=True)
-    ind = np.where((r_pp > xmin) & (r_pp < xmax))
+    ind = np.where((r_kpc > xmin) & (r_kpc < xmax))
     e_ind = np.concatenate(([ind[0][0]-1], ind[0], [ind[0][-1]+1]), axis=0)
     ax1.set_xscale('log')
     [i.set_yscale('log') for i in (ax1, ax2, ax3, ax4, ax5, ax6)]
@@ -614,8 +658,8 @@ def plot_rad_profs(r_pp, xmin, xmax, dens, temp, prss, entr, cool, gmss, plotdir
     for (i, j) in enumerate([[dens, 'Density (cm$^{-3}$)'], [temp, 'Temperature (keV)'], [prss, 'Pressure (keV cm$^{-3}$)'], 
                              [entr, 'Entropy (keV cm$^2$)'], [cool, 'Cooling time (Gyr)'], 
                              [gmss, 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']]):
-        eval('ax'+str(i+1)).plot(r_pp[e_ind], j[0][1][e_ind])
-        eval('ax'+str(i+1)).fill_between(r_pp[e_ind], j[0][0][e_ind], j[0][2][e_ind], color='powderblue')
+        eval('ax'+str(i+1)).plot(r_kpc[e_ind], j[0][1][e_ind])
+        eval('ax'+str(i+1)).fill_between(r_kpc[e_ind], j[0][0][e_ind], j[0][2][e_ind], color='powderblue')
         eval('ax'+str(i+1)).set_ylabel(j[1])
     ax5.set_xlabel('Radius (kpc)')
     ax6.set_xlabel('Radius (kpc)')
