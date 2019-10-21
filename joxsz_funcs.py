@@ -206,9 +206,9 @@ class CmptPressure(mb.Cmpt):
         Default parameter values
         ------------------------
         P_0 = normalizing constant
-        a = slope at intermediate radii
-        b = slope at large radii
-        c = slope at small radii
+        a = rate of turnover between b and c
+        b = logarithmic slope at r/r_p >> 1
+        c = logarithmic slope at r/r_p << 1
         r_p = characteristic radius
         '''        
         pars = {
@@ -310,13 +310,13 @@ def mydens_defPars(self):
     '''
     Default density profile parameters
     ----------------------------------
-    n_0 = (...)
-    beta = (...)
-    r_c = (...)
-    r_s = (...)
-    alpha = (...)
-    epsilon = (...)
-    gamma = (...)
+    n_0 = normalizing constant 
+    beta = shape parameter for the isothermal β-model
+    r_c = core radius
+    r_s = scale radius (radius at which the density profile steepens with respect to the traditional β-model)
+    alpha = logarithmic slope at r/r_c << 1
+    epsilon = change of slope near r_s
+    gamma = width of the transition region
     '''
     pars = {
         'n_0': mb.Param(-3., minval=-7., maxval=2.),
@@ -342,13 +342,7 @@ def mydens_vikhFunction(self, pars, radii_kpc):
     epsilon = pars[r'\epsilon'].val
     gamma = pars[r'\gamma'].val
     r = radii_kpc
-    retn_sqd = (n_0**2*(r/r_c)**(-alpha)/((1+r**2/r_c**2)**(3*beta-0.5*alpha)*(1+(r/r_s)**gamma)**(epsilon/gamma)))
-    if self.mode == 'double':
-        n_02 = 10**pars['n_{02}'].val
-        r_c2 = 10**pars['log(r_{c2})'].val
-        beta_2 = pars[r'\beta_2'].val
-        retn_sqd += n_02**2 / (1 + r**2/r_c2**2)**(3*beta_2)
-    return np.sqrt(retn_sqd)
+    return n_0*(r/r_c)**(-alpha/2)/((1+r**2/r_c**2)**((3*beta-0.5*alpha)/2)*(1+(r/r_s)**gamma)**(epsilon/gamma/2))
 
 def mydens_prior(self, pars):
     '''
@@ -373,20 +367,28 @@ def get_sz_like(self, output='ll'):
     -------------------------------------------------------------------------------------
     RETURN: log-posterior probability or -inf whether theta is out of the parameter space
     '''
+    # pressure profile
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
+    # abel transform
     ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', backend='Python')[:self.data.sz.ub]
+    # Compton parameter
     y = (kpc_cm*self.data.sz.phys_const[1]/self.data.sz.phys_const[0]*ab)
     f = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
                  np.append(y, y), 'cubic', bounds_error=False, fill_value=(0, 0))
+    # Compton parameter 2D image
     y_2d = f(self.data.sz.d_mat) 
+    # Convolution with the beam
     conv_2d = fftconvolve(y_2d, self.data.sz.beam_2d, 'same')*self.data.sz.step**2
+    # Convolution with the transfer function
     FT_map_in = fft2(conv_2d)
     map_out = np.real(ifft2(FT_map_in*self.data.sz.filtering))
+    # Temperature-dependent conversion from Compton parameter to mJy/beam
     t_prof = self.model.T_cmpt.temp_fun(self.pars, self.data.sz.r_pp[:self.data.sz.ub])*self.pars['T_{SZ}/T_X'].val
     h = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
                  np.append(t_prof, t_prof), 'cubic', bounds_error=False, fill_value=(t_prof[-1], t_prof[-1]))
     map_prof = map_out[conv_2d.shape[0]//2, conv_2d.shape[0]//2:]*self.data.sz.convert(np.append(h(0), t_prof))
     g = interp1d(self.data.sz.radius[self.data.sz.sep:], map_prof, 'cubic', fill_value='extrapolate')
+    # Log-likelihood calculation
     chisq = np.sum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/self.data.sz.flux_data[2])**2)
     log_lik = -chisq/2
     if output == 'll':
@@ -397,28 +399,37 @@ def get_sz_like(self, output='ll'):
         return pp
     elif output == 'flux':
         return map_prof
+    else:
+        raise RuntimeError('Unrecognised output name (must be "ll", "chisq", "pp" or "flux")')
 
 def getLikelihood(self, vals=None):
     '''
-    Computes the joint SZ-X log-likelihood for the current parameters
+    Computes the joint X-SZ log-likelihood for the current parameters
     -----------------------------------------------------------------
     '''
+    # update parameters
     if vals is not None:
         self.updateThawed(vals)
     # prior on parameters
     parprior = sum((self.pars[p].prior() for p in self.pars))
     if not np.isfinite(parprior):
         return -np.inf
-    # exclude unphsical mass profiles
+    # exclude unphysical mass profiles
     if self.exclude_unphy_mass:
         m_prof = self.mass_cmpt.mass_fun(self.pars, self.data.sz.r_pp) 
         if not(all(np.gradient(m_prof, 1) > 0)):
             return -np.inf
+    # X-ray fitted profiles
     profs = self.calcProfiles()
+    # X-ray log-likelihood
     like = self.likeFromProfs(profs)
-    prior = self.model.prior(self.pars)+parprior
+    # SZ log-likelihood
     sz_like = self.get_sz_like()
+    # prior on parameters 
+    prior = self.model.prior(self.pars)+parprior
+    # JoXSZ log-likelihood
     totlike = float(like+prior+sz_like)
+    # print best-fitting parameters
     if mb.fit.debugfit and (totlike-self.bestlike) > 0.1:
         self.bestlike = totlike
         with mb.utils.AtomicWriteFile("%s/fit.dat" % self.savedir) as fout:
@@ -427,7 +438,7 @@ def getLikelihood(self, vals=None):
                 mb.utils.uprint("%s = %s" % (p, self.pars[p]), file=fout)
     return totlike
 
-# (...) continua a commentare da qui in poi
+# (...)
 def prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir='./'):
     pdf = PdfPages(plotdir+'prelimfit.pdf')
     for i, (band, prof) in enumerate(zip(data.bands, myprofs)):
