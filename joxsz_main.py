@@ -217,7 +217,7 @@ lxsz, mxsz, hxsz = np.percentile(profs, [50-ci/2., 50, 50+ci/2.], axis=0)
 # lo, med and hi have shapes (numberofbands, numberannuli)
 
 # fig model on data
-fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, sz_data, flatchain, fit, ci, plotdir)
+fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, flatchain, fit, ci, plotdir)
 
 # SZ data fit
 med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz_data, flatchain, fit, ci)
