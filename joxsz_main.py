@@ -101,6 +101,9 @@ nlength = 2000 # length of chain
 nwalkers = 30 # number of walkers
 nthreads = 8 # number of processes/threads
 
+# whether to exclude unphysical masses from fit
+exclude_unphy_mass = True
+
 ## Code
 
 #remove cache
@@ -114,31 +117,32 @@ bands = []
 for bandE in bandEs:
     bands.append(loadBand(infgtempl, inbgtempl, bandE, rmf, arf))
 
-# Data object represents annuli and bands (+ sz_data)
+# Data object represents annuli and bands (+ SZ objects required in JoXSZ)
 data = mb.Data(bands, annuli)
 data.sz = sz_data
 
-
 # flat metallicity profile
 Z_cmpt = mb.CmptFlat('Z', annuli, defval=Z_solar, minval=0, maxval=1)
-# this is the modified beta model density described in Sanders+17 (used in McDonald+12)
-ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
-# (single mode means only one beta model, as described in Vikhlinin+06)
 
+# density profile
+ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
 # change parameter names
 mb.CmptVikhDensity.vikhFunction = MethodType(mydens_vikhFunction, ne_cmpt)
 mb.CmptVikhDensity.defPars = MethodType(mydens_defPars, ne_cmpt)
 mb.CmptVikhDensity.prior = MethodType(mydens_prior, ne_cmpt)
 
+# pressure profile
 press_cmpt = CmptPressure('p', annuli)
+
+# temperature profile
 T_cmpt = CmptUPPTemperature('T', annuli, press_cmpt, ne_cmpt)
 
-## NON-HYDRO
-# non-hydrostatic model combining density, temperature and metallicity
+# Non-hydrostatic model combining density, temperature and metallicity
 model = mb.ModelNullPot(annuli, ne_cmpt, T_cmpt, Z_cmpt, NH_1022pcm2=NH_1022pcm2)
 
 # get default parameters
 pars = model.defPars()
+# update for pressure parameters
 pars.update(press_cmpt.defPars())
 
 # add parameter which allows variation of background with a Gaussian prior with sigma = 0.1
@@ -156,39 +160,27 @@ pars[r'\epsilon'].maxval = 10
 pars[r'\alpha'].val = 0.
 pars[r'\alpha'].frozen = True
 
+# constraints on pressure parameters
 #pars['a'].frozen = True
 #pars['b'].frozen = True
 pars['c'].frozen = True
 
+# parameter regulating the ratio between SZ temperature and X-ray temperature
 pars['T_{SZ}/T_X'] = mb.Param(1, minval=.1, maxval=10., frozen=True)
-
-# rimpiazzo di veusz
-edges = annuli.edges_arcmin
-xfig = 0.5*(edges[1:]+edges[:-1])
-errxfig = 0.5*(edges[1:]-edges[:-1])
-geomareas = np.pi*(edges[1:]**2-edges[:-1]**2)
 
 # do fitting of data with model
 fit = mb.Fit(pars, model, data)
-fit.press = press_cmpt
-fit.mode = 'single'
-fit.exclude_unphy_mass = True
-fit.mass_cmpt = CmptMyMass('m', annuli, press_cmpt, ne_cmpt)
+fit.exclude_unphy_mass = exclude_unphy_mass
 fit.savedir = savedir
+# add pressure and mass components
+fit.press = press_cmpt
+fit.mass_cmpt = CmptMyMass('m', annuli, press_cmpt, ne_cmpt)
+# update likelihood computation
 mb.Fit.get_sz_like = MethodType(get_sz_like, fit)
 mb.Fit.getLikelihood = MethodType(getLikelihood, fit)
 
-# =============================================================================
-# # Check on the unphysical masses exclusion
-# fit.updateThawed([1, 0.1, 1, 4, 2, 5, 1, 2.4, 3, -1, 249])
-# fit.getLikelihood()
-# =============================================================================
-
-# fit.refreshThawed() 
-# refreshThawed is required if frozen is changed after Fit is constructed before doFitting (it's not required here)
-
+#
 fit.doFitting()
-
 # save best fit
 with open('%s%s_fit.pickle' % (savedir, name), 'wb') as f:
     pickle.dump(fit, f, -1)
@@ -198,31 +190,31 @@ mcmc = mb.MCMC(fit, walkers=nwalkers, processes=nthreads)
 chainfilename = '%s%s_chain.hdf5' % (savedir, name)
 mcmc.burnIn(nburn)
 
-# run mcmc proper
+# run mcmc proper and save the chain
 mcmc.run(nlength)
 mcmc.save(chainfilename)
 mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F')
 flatchain = mcmc.sampler.flatchain[::100]
 mcmc_thawed = mcmc.fit.thawed
 
-# plots
-myprofs = fit.calcProfiles()
-prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir)
+## Plots
+# Graphical settings
+edges = annuli.edges_arcmin
+xfig = 0.5*(edges[1:]+edges[:-1])
+errxfig = 0.5*(edges[1:]-edges[:-1])
+geomareas = np.pi*(edges[1:]**2-edges[:-1]**2)
+
+# Bayesian diagnostics
 traceplot(mysamples, mcmc_thawed, nsteps=nlength, nw=nwalkers, plotdir=plotdir)
 triangle(mysamples, mcmc_thawed, plotdir)
+
+# Best fitting profiles
 profs = []
 for pars in flatchain: #[-1000:]:
     fit.updateThawed(pars)
     profs.append(fit.calcProfiles())
 lxsz, mxsz, hxsz = np.percentile(profs, [50-ci/2., 50, 50+ci/2.], axis=0)
-# lo, med and hi have shapes (numberofbands, numberannuli)
-
-# fig model on data
 fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, flatchain, fit, ci, plotdir)
-
-# SZ data fit
-# med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz_data, flatchain, fit, ci)
-# plot_best_sz(sz_data, med_xsz, lo_xsz, hi_xsz, ci, plotdir)
 
 # Radial profiles
 tdens = np.zeros((flatchain.shape[0], r_pp.size))
@@ -239,11 +231,12 @@ temp = np.percentile(ttemp, [50-ci/2., 50, 50+ci/2.], axis=0)
 entr = np.percentile(tentr, [50-ci/2., 50, 50+ci/2.], axis=0)
 cool = np.percentile(tcool, [50-ci/2., 50, 50+ci/2.], axis=0)
 gmss = np.percentile(tgmass, [50-ci/2., 50, 50+ci/2.], axis=0)
-
 plot_rad_profs(r_pp, 1e2, 1e3, dens, temp, prss, entr, cool, gmss, plotdir)
 
-# mass
-m_vd = mass_r_delta(r_pp, cosmology)
+# Mass computation (under the assumption of hydrostatic equilibrium)
+# mass profile with overdensity=500
+m_vd = mass_r_delta(r_pp, cosmology, delta=500)
+# fitted mass profiles, overdensity radii and overdensity masses
 mass_prof, r_delta, m_delta = [[], [], []]
 for pars in flatchain:
     res = m_r_delta(pars, fit, r_pp, cosmology)
@@ -253,5 +246,5 @@ for pars in flatchain:
 lmss, mmss, hmss = np.percentile(mass_prof, [50-ci/2., 50, 50+ci/2.], axis=0)
 lr_d, mr_d, hr_d = np.percentile(r_delta, [50-ci/2., 50, 50+ci/2.], axis=0)
 lm_d, mm_d, hm_d = np.percentile(m_delta, [50-ci/2., 50, 50+ci/2.], axis=0)
-
+# total mass profile
 mass_plot(r_pp, mmss, lmss, hmss, mr_d, lr_d, hr_d, mm_d, lm_d, hm_d, m_vd, plotdir)
