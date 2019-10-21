@@ -670,6 +670,16 @@ def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, plotdi
     pdf.close()
 
 def mass_r_delta(r_kpc, cosmo, delta=500):
+    '''
+    Compute the mass profile in terms of the overdensity radius 
+    (overdensity radius = radius within which the average density is Δ times the critical density at the cluster's redshift)
+    ------------------------------------------------------------------------------------------------------------------------
+    r_kpc = radius (kpc)
+    cosmo = Cosmology object
+    delta = overdensity (Δ)
+    ------------------------
+    RETURN: the mass profile
+    '''
     # H0 (s^-1)
     H0_s = cosmo.H0/Mpc_km
     # H(z) (s^-1)
@@ -678,12 +688,24 @@ def mass_r_delta(r_kpc, cosmo, delta=500):
     rho_c = 3*HZ**2/(8*np.pi*G_cgs)
     # radius (cm)
     r_cm = r_kpc*kpc_cm   
-    # M(< r_delta) (g*solar masses)
+    # mass (solar masses)
     mass_r_delta = 4/3*np.pi*rho_c*delta*r_cm**3/solar_mass_g
-    # m_HSE = dr_p(fit_xz.pars, r_kpc)
     return mass_r_delta
 
 def m_r_delta(pars, fit, r_kpc, cosmo, delta=500):
+    '''
+    Compute the overdensity radius and the overdensity mass 
+    (overdensity radius = radius within which the average density is Δ times the critical density at the cluster's redshift)
+    (overdensity mass = mass enclosed within the overdensity radius)
+    ------------------------------------------------------------------------------------------------------------------------
+    pars = parameter values
+    fit = Fit object
+    r_kpc = radius (kpc)
+    cosmo = Cosmology object
+    delta = overdensity (Δ)
+    ---------------------------------------------------------------------
+    RETURN: cumulative mass profile, overdensity radius, overdensity mass
+    '''
     fit.updateThawed(pars)
     m_prof = fit.mass_cmpt.mass_fun(fit.pars, r_kpc)
     r_delta = optimize.newton(lambda r: fit.mass_cmpt.mass_fun(fit.pars, r)-mass_r_delta(r, cosmo, delta), 700)
@@ -691,6 +713,16 @@ def m_r_delta(pars, fit, r_kpc, cosmo, delta=500):
     return m_prof, r_delta, m_delta
 
 def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_md, low_md, hig_md, m_vd, plotdir='./'):
+    '''
+    Cumulative mass profile plot
+    ----------------------------
+    r_kpc = radius (kpc)
+    med_mass, low_mass, hig_mass = median mass profile with CI boundaries
+    med_rd, low_rd, hig_rd = overdensity radius with CI boundaries
+    med_md, low_md, hig_md = overdensity mass with CI boundaries
+    m_vd = cumulative mass profile in terms of volume and density
+    plotdir = directory where to place the plot
+    '''
     pdf = PdfPages(plotdir+'r500+m500.pdf')
     plt.errorbar(r_kpc, med_mass)
     plt.fill_between(r_kpc, low_mass, hig_mass, color='powderblue')
@@ -707,7 +739,6 @@ def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_m
     plt.ylim(1e13, 1e15)
     plt.xlabel('Radius (kpc)')
     plt.ylabel('Total mass (M$_\odot$)')
-
     plt.text(80, med_md, '$M_{500}$')
     plt.text(low_rd, 7e12, '$r_{500}$')
     plt.text(3e2, 2.5e13, '$M(r)=\\frac{4}{3} \\pi r^3 500 \\rho_c(z)$', rotation=53, rotation_mode='anchor')
