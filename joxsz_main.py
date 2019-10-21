@@ -209,6 +209,7 @@ mcmc_thawed = mcmc.fit.thawed
 myprofs = fit.calcProfiles()
 prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir)
 traceplot(mysamples, mcmc_thawed, nsteps=nlength, nw=nwalkers, plotdir=plotdir)
+triangle(mysamples, mcmc_thawed, plotdir)
 profs = []
 for pars in flatchain: #[-1000:]:
     fit.updateThawed(pars)
@@ -220,9 +221,8 @@ lxsz, mxsz, hxsz = np.percentile(profs, [50-ci/2., 50, 50+ci/2.], axis=0)
 fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, flatchain, fit, ci, plotdir)
 
 # SZ data fit
-med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz_data, flatchain, fit, ci)
-plot_best_sz(sz_data, med_xsz, lo_xsz, hi_xsz, ci, plotdir)
-triangle(mysamples, mcmc_thawed, plotdir)
+# med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz_data, flatchain, fit, ci)
+# plot_best_sz(sz_data, med_xsz, lo_xsz, hi_xsz, ci, plotdir)
 
 # Radial profiles
 tdens = np.zeros((flatchain.shape[0], r_pp.size))
