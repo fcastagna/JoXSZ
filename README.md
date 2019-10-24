@@ -23,4 +23,4 @@ Beam data and transfer function data come from the [NIKA data release](http://lp
 ### Credits
 Castagna Fabio, Andreon Stefano, Pranjal RS.
 
-For more details, see [Castagna and Andreon 2019](https://arxiv.org/abs/1910.06620). (A&A, in press).
+For more details, see [Castagna and Andreon 2019](https://arxiv.org/abs/1910.06620) (A&A, in press).
