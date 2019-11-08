@@ -262,19 +262,29 @@ class CmptUPPTemperature(mb.Cmpt):
         '''
         Default parameter values from pressure and density profiles
         -----------------------------------------------------------
+        T_ratio = T_X / T_SZ
         '''
         pars = self.press_prof.defPars()
         pars.update(self.ne_prof.defPars())
+        pars['log(T_{ratio})'] = mb.Param(0, minval=-1, maxval=1)
         return pars
     
-    def temp_fun(self, pars, r_kpc):
+    def temp_fun(self, pars, r_kpc, getT_SZ=False):
         '''
-        Compute the temperature profile
-        -------------------------------
+        Compute the temperature profile (X-ray by default, SZ alternatively).
+        Please note that T_X = T_SZ if T_ratio is not fitted but fixed to 1!
+        --------------------------------------------------------------------
+        getT_SZ = whether to return T_SZ (True/False, default is False)
         '''
         pr = self.press_prof.press_fun(pars, r_kpc)
         ne = self.ne_prof.vikhFunction(pars, r_kpc)
-        return pr/ne
+        T_SZ = pr/ne
+        if getT_SZ:
+            return T_SZ
+        else:
+            T_XpT_SZ = 10**pars['log(T_{ratio})'].val
+            T_X = T_SZ*T_XpT_SZ
+            return T_X
 
 class CmptMyMass(mb.Cmpt):
     '''
@@ -383,7 +393,7 @@ def get_sz_like(self, output='ll'):
     FT_map_in = fft2(conv_2d)
     map_out = np.real(ifft2(FT_map_in*self.data.sz.filtering))
     # Temperature-dependent conversion from Compton parameter to mJy/beam
-    t_prof = self.model.T_cmpt.temp_fun(self.pars, self.data.sz.r_pp[:self.data.sz.ub])*self.pars['T_{SZ}/T_X'].val
+    t_prof = self.model.T_cmpt.temp_fun(self.pars, self.data.sz.r_pp[:self.data.sz.ub], getT_SZ=True)
     h = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
                  np.append(t_prof, t_prof), 'cubic', bounds_error=False, fill_value=(t_prof[-1], t_prof[-1]))
     map_prof = map_out[conv_2d.shape[0]//2, conv_2d.shape[0]//2:]*self.data.sz.convert(np.append(h(0), t_prof))
@@ -624,8 +634,10 @@ def my_rad_profs(vals, r_kpc, fit):
     pars = fit.pars
     # density
     dens = fit.model.ne_cmpt.vikhFunction(pars, r_kpc)
-    # temperature
+    # temperature (X-ray)
     temp = fit.model.T_cmpt.temp_fun(pars, r_kpc)
+    # temperature (SZ)
+    t_sz = fit.model.T_cmpt.temp_fun(pars, r_kpc, getT_SZ=True)
     # pressure
     press = fit.press.press_fun(pars, r_kpc)
     # entropy
@@ -637,7 +649,7 @@ def my_rad_profs(vals, r_kpc, fit):
     edg_cm = np.append(r_kpc[0]/2, r_kpc+r_kpc[0]/2)*kpc_cm
     mgas = dens*mu_e*mu_g/solar_mass_g*4/3*np.pi*(edg_cm[1:]**3-edg_cm[:-1]**3)
     cmgas = mgas*frac_int(edg_cm)+np.concatenate(([0], np.cumsum(mgas)[:-1]))
-    return dens, temp, press, entr, cool, cmgas
+    return dens, temp, press, entr, cool, cmgas, t_sz
 
 def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, plotdir='./'):
     '''
