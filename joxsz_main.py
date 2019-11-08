@@ -165,8 +165,8 @@ pars[r'\alpha'].frozen = True
 #pars['b'].frozen = True
 pars['c'].frozen = True
 
-# parameter regulating the ratio between SZ temperature and X-ray temperature
-pars['T_{SZ}/T_X'] = mb.Param(1, minval=.1, maxval=10., frozen=True)
+# parameter regulating the ratio between X-ray temperature and SZ temperature
+pars['log(T_{ratio})'].frozen = True
 
 # do fitting of data with model
 fit = mb.Fit(pars, model, data)
@@ -223,14 +223,16 @@ tpress = tdens.copy()
 tentr = tdens.copy()
 tcool = tdens.copy()
 tgmass = tdens.copy()
+tt_sz = tdens.copy()
 for j in range(flatchain.shape[0]):
-    tdens[j], ttemp[j], tpress[j], tentr[j], tcool[j], tgmass[j] = my_rad_profs(flatchain[j,:], r_pp, fit)
+    tdens[j], ttemp[j], tpress[j], tentr[j], tcool[j], tgmass[j], tt_sz[j] = my_rad_profs(flatchain[j,:], r_pp, fit)
 dens = np.percentile(tdens, [50-ci/2., 50, 50+ci/2.], axis=0)
 prss = np.percentile(tpress, [50-ci/2., 50, 50+ci/2.], axis=0)
 temp = np.percentile(ttemp, [50-ci/2., 50, 50+ci/2.], axis=0)
 entr = np.percentile(tentr, [50-ci/2., 50, 50+ci/2.], axis=0)
 cool = np.percentile(tcool, [50-ci/2., 50, 50+ci/2.], axis=0)
 gmss = np.percentile(tgmass, [50-ci/2., 50, 50+ci/2.], axis=0)
+t_sz = np.percentile(tt_sz, [50-ci/2., 50, 50+ci/2.], axis=0)
 plot_rad_profs(r_pp, 1e2, 1e3, dens, temp, prss, entr, cool, gmss, plotdir)
 
 # Mass computation (under the assumption of hydrostatic equilibrium)
