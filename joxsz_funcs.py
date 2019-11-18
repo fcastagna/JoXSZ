@@ -318,12 +318,16 @@ def mydens_defPars(self):
     Default density profile parameters
     ----------------------------------
     n_0 = normalizing constant 
-    beta = shape parameter for the isothermal β-model
     r_c = core radius
-    r_s = scale radius (radius at which the density profile steepens with respect to the traditional β-model)
     alpha = logarithmic slope at r/r_c << 1
-    epsilon = change of slope near r_s
+    beta = shape parameter for the isothermal β-model
+    r_s = scale radius (radius at which the density profile steepens with respect to the traditional β-model)
     gamma = width of the transition region
+    epsilon = change of slope near r_s
+    #
+    n_02 = additive constant
+    r_c2 = small core radius
+    beta_2 = shape parameter
     '''
     pars = {
         'n_0': mb.Param(-3., minval=-7., maxval=2.),
@@ -334,6 +338,12 @@ def mydens_defPars(self):
         r'\epsilon': mb.Param(3., minval=0., maxval=5.),
         r'\gamma': mb.Param(3., minval=0., maxval=10, frozen=True),
         }
+    if self.mode == 'double':
+        pars.update({
+            'n_{02}': mb.Param(-1., minval=-7., maxval=2.),
+            r'\beta_2': mb.Param(0.5, minval=0., maxval=4.),
+            'log(r_{c2})': mb.Param(1.7, minval=-1., maxval=3.7),
+            })
     return pars
 
 def mydens_vikhFunction(self, pars, radii_kpc):
@@ -341,7 +351,7 @@ def mydens_vikhFunction(self, pars, radii_kpc):
     Compute the Vikhlinin density profile
     -------------------------------------
     '''
-    n_0 = 10**pars['n_0'].val
+    n_0 = pars['n_0'].val
     beta = pars[r'\beta'].val
     r_c = 10**pars['log(r_c)'].val
     r_s = 10**pars['log(r_s)'].val
@@ -349,6 +359,12 @@ def mydens_vikhFunction(self, pars, radii_kpc):
     epsilon = pars[r'\epsilon'].val
     gamma = pars[r'\gamma'].val
     r = radii_kpc
+    res = n_0*(r/r_c)**(-alpha/2)/((1+r**2/r_c**2)**((3*beta-0.5*alpha)/2)*(1+(r/r_s)**gamma)**(epsilon/gamma/2))
+    if self.mode == 'double':
+        n_02 = pars['n_{02}'].val
+        r_c2 = 10**pars['log(r_{c2})'].val
+        beta_2 = pars[r'\beta_2'].val
+        res
     return n_0*(r/r_c)**(-alpha/2)/((1+r**2/r_c**2)**((3*beta-0.5*alpha)/2)*(1+(r/r_s)**gamma)**(epsilon/gamma/2))
 
 def mydens_prior(self, pars):
