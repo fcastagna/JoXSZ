@@ -260,13 +260,10 @@ class CmptUPPTemperature(mb.Cmpt):
 
     def defPars(self):
         '''
-        Default parameter values from pressure and density profiles
-        -----------------------------------------------------------
-        T_ratio = T_X / T_SZ
+        Default parameter T_ratio = T_X / T_SZ
+        --------------------------------------
         '''
-        pars = self.press_prof.defPars()
-        pars.update(self.ne_prof.defPars())
-        pars['log(T_{ratio})'] = mb.Param(0, minval=-1, maxval=1)
+        pars = {'log(T_{ratio})': mb.Param(0, minval=-1, maxval=1)}
         return pars
     
     def temp_fun(self, pars, r_kpc, getT_SZ=False):
@@ -634,10 +631,10 @@ def my_rad_profs(vals, r_kpc, fit):
     pars = fit.pars
     # density
     dens = fit.model.ne_cmpt.vikhFunction(pars, r_kpc)
-    # temperature (X-ray)
-    temp = fit.model.T_cmpt.temp_fun(pars, r_kpc)
     # temperature (SZ)
-    t_sz = fit.model.T_cmpt.temp_fun(pars, r_kpc, getT_SZ=True)
+    temp = fit.model.T_cmpt.temp_fun(pars, r_kpc, getT_SZ=True)
+    # temperature (X-ray)
+    xtmp = fit.model.T_cmpt.temp_fun(pars, r_kpc)
     # pressure
     press = fit.press.press_fun(pars, r_kpc)
     # entropy
@@ -649,15 +646,15 @@ def my_rad_profs(vals, r_kpc, fit):
     edg_cm = np.append(r_kpc[0]/2, r_kpc+r_kpc[0]/2)*kpc_cm
     mgas = dens*mu_e*mu_g/solar_mass_g*4/3*np.pi*(edg_cm[1:]**3-edg_cm[:-1]**3)
     cmgas = mgas*frac_int(edg_cm)+np.concatenate(([0], np.cumsum(mgas)[:-1]))
-    return dens, temp, press, entr, cool, cmgas, t_sz
+    return dens, temp, press, entr, cool, cmgas, xtmp
 
-def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, plotdir='./'):
+def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, xtmp, plotdir='./'):
     '''
     Plot the thermodynamic radial profiles
     --------------------------------------
     r_kpc = radius (kpc)
     xmin, xmax = x-axis boundaries for the plot
-    dens, temp, press, entr, cool, gmss = thermodynamic best fitting profiles (median and CI)
+    dens, temp, press, entr, cool, gmss, xtmp = thermodynamic best fitting profiles (median and CI)
     plotdir = directory where to place the plot
     '''
     pdf = PdfPages(plotdir+'radial_profiles.pdf')
@@ -673,6 +670,8 @@ def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, plotdi
         eval('ax'+str(i+1)).plot(r_kpc[e_ind], j[0][1][e_ind])
         eval('ax'+str(i+1)).fill_between(r_kpc[e_ind], j[0][0][e_ind], j[0][2][e_ind], color='powderblue')
         eval('ax'+str(i+1)).set_ylabel(j[1])
+    if temp[1][0] != xtmp[1][0]:
+        ax2.plot(r_kpc[e_ind], xtmp[1][e_ind]) # add X temperature
     ax5.set_xlabel('Radius (kpc)')
     ax6.set_xlabel('Radius (kpc)')
     ax2.yaxis.set_label_position('right')
