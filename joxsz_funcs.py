@@ -359,13 +359,13 @@ def mydens_vikhFunction(self, pars, radii_kpc):
     epsilon = pars[r'\epsilon'].val
     gamma = pars[r'\gamma'].val
     r = radii_kpc
-    res = n_0*(r/r_c)**(-alpha/2)/((1+(r/r_c)**2)**((3*beta-0.5*alpha)/2)*(1+(r/r_s)**gamma)**(epsilon/gamma/2))
+    res_sq = n_0**2*(r/r_c)**(-alpha)/((1+(r/r_c)**2)**(3*beta-alpha/2)*(1+(r/r_s)**gamma)**(epsilon/gamma))
     if self.mode == 'double':
         n_02 = pars['n_{02}'].val
         r_c2 = 10**pars['log(r_{c2})'].val
         beta_2 = pars[r'\beta_2'].val
-        res += n_02/(1+(r/r_c2)**2)**(3*beta_2)
-    return res
+        res_sq += n_02**2/(1+(r/r_c2)**2)**(3*beta_2)
+    return np.sqrt(res_sq)
 
 def mydens_prior(self, pars):
     '''
