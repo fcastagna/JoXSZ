@@ -151,12 +151,12 @@ def filt_image(wn_as, tf, side, step):
     karr = dist(side)/side*kmax
     return f(np.rot90(np.rot90(karr)))
 
-def getEdges(infg, bandE):
+def getEdges(infg, bands):
     '''
     Get edges of annuli in arcmin
     -----------------------------
     infg = foreground profiles file name
-    bandE = energy band in eV
+    bands = energy band in eV
     ---------------------------------
     RETURN: edges of annuli in arcmin
     '''
