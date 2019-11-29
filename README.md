@@ -21,6 +21,6 @@ Beam data and transfer function data come from the [NIKA data release](http://lp
 - [corner](https://pypi.org/project/corner/)
 
 ### Credits
-[`preprofit`] Castagna F, Andreon S. [PreProFit: Pressure Profile Fitter for galaxy clusters](https://ui.adsabs.harvard.edu/abs/2019A%26A...632A..22C/abstract).
+`preprofit` Castagna F, Andreon S. [PreProFit: Pressure Profile Fitter for galaxy clusters](https://ui.adsabs.harvard.edu/abs/2019A%26A...632A..22C/abstract).
 
-[`MBProj2`] Sanders J et al. [Hydrostatic Chandra X-ray analysis of SPT-selected galaxy clusters - I. Evolution of profiles and core properties](https://ui.adsabs.harvard.edu/abs/2018MNRAS.474.1065S/abstract).
+`MBProj2` Sanders J et al. [Hydrostatic Chandra X-ray analysis of SPT-selected galaxy clusters - I. Evolution of profiles and core properties](https://ui.adsabs.harvard.edu/abs/2018MNRAS.474.1065S/abstract).
