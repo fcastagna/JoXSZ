@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# hydrostatic version of profile fit assuming parametric modified-beta
-# density model
-
 # note xspec will run for a while on first invocation to create grids,
 # so don't worry if it hangs on Fitting
 
@@ -20,21 +17,22 @@ from types import MethodType
 import h5py
 
 #################
-### SZ (see https://github.com/fcastagna/preprofit for more details)
-
 ## Global and local variables
 
-mystep = 2. # constant step in arcsec (values higher than (1/3)*FWHM of the beam are not recommended)
+mystep = 2. # constant step in arcsec (values higher than (1/3)*FWHM of the SZ beam are not recommended)
 m_e = 0.5109989*1e3 # electron rest mass (keV)
 sigma_T = 6.6524587158*1e-25 # Thomson cross section (cm^2)
 R_b = 5000 # Radial cluster extent (kpc), serves as upper bound for Compton y parameter integration
 
-# Cluster and cosmology
+# Cluster cosmology
 redshift = 0.888
 cosmology = mb.Cosmology(redshift)
 cosmology.H0 = 67.32 # Hubble's constant (km/s/Mpc)
 cosmology.WM = 0.3158 # matter density
 cosmology.WV = 0.6842 # vacuum density
+
+#################
+### SZ
 
 # Data
 files_sz_dir = './data/SZ' # SZ data directory
@@ -49,7 +47,43 @@ tf_approx = False
 fwhm_beam = None # fwhm of the normal distribution for the beam approximation
 loc, scale, c = None, None, None # location, scale and normalization parameters of the normal cdf for the tf approximation
 
-## Code
+#################
+### X-ray
+
+# energy bands in eV
+bandEs = [[700,1000], [1000,2000], [2000,3000], [3000,5000], [5000,7000]]
+
+# Cluster parameters
+NH_1022pcm2 = .0183 # absorbing column density in 10^22 cm^(-2) 
+Z_solar = 0.3 # assumed metallicity or, if free, any value in the valid range
+
+# Chandra data
+files_x_dir = './data/X' # X-ray data directory
+rmf = '%s/source.rmf' %files_x_dir
+arf = '%s/source.arf' %files_x_dir
+infgtempl = files_x_dir+'/fg_prof_%04i_%04i.dat' # foreground profile
+inbgtempl = files_x_dir+'/bg_prof_%04i_%04i.dat' # background profile
+
+# name for outputs
+name = 'fit_modified_beta_nonhydro'
+plotdir = './plots/'
+savedir = './save/'
+
+# Uncertainty level
+ci = 95
+
+# MCMC parameters
+nburn = 2000 # number to burn
+nlength = 2000 # length of chain
+nwalkers = 30 # number of walkers
+nthreads = 8 # number of processes/threads
+
+# whether to exclude unphysical masses from fit
+exclude_unphy_mass = True
+
+#################
+### Code
+
 phys_const = [m_e, sigma_T]
 kpc_as = cosmology.kpc_per_arcsec # number of kpc per arcsec
 flux_data = read_xy_err(flux_filename, ncol=3) # radius (arcsec), flux density, statistical error
@@ -68,44 +102,6 @@ t_keV, compt_Jy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True)
 convert = interp1d(t_keV, compt_Jy_beam*1e3, 'linear', fill_value='extrapolate')
 sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering)
 
-#################
-### X-ray
-
-## Global and local variables
-
-# energy bands in eV
-bandEs = [[700,1000], [1000,2000], [2000,3000], [3000,5000], [5000,7000]]
-
-# Cluster parameters
-NH_1022pcm2 = .01830000000000000000 # absorbing column density in 10^22 cm^(-2) 
-Z_solar = 0.3
-
-# Chandra data
-files_x_dir = './data/X' # X-ray data directory
-rmf = '%s/source.rmf' %files_x_dir
-arf = '%s/source.arf' %files_x_dir
-infgtempl = files_x_dir+'/fg_prof_%04i_%04i.dat' # foreground profile
-inbgtempl = files_x_dir+'/bg_prof_%04i_%04i.dat' # background profile
-
-# name for outputs
-name = 'fit_modified_beta_nonhydro'
-plotdir = './plots/'
-savedir = './save/'
-
-# Confidence interval
-ci = 95
-
-# MCMC parameters
-nburn = 2000 # number to burn
-nlength = 2000 # length of chain
-nwalkers = 30 # number of walkers
-nthreads = 8 # number of processes/threads
-
-# whether to exclude unphysical masses from fit
-exclude_unphy_mass = True
-
-## Code
-
 #remove cache
 mb.xspechelper.deleteFile('countrate_cache.hdf5')
 
@@ -117,7 +113,7 @@ bands = []
 for bandE in bandEs:
     bands.append(loadBand(infgtempl, inbgtempl, bandE, rmf, arf))
 
-# Data object represents annuli and bands (+ SZ objects required in JoXSZ)
+# Data object represents annuli and bands
 data = mb.Data(bands, annuli)
 data.sz = sz_data
 
@@ -197,7 +193,9 @@ mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F
 flatchain = mcmc.sampler.flatchain[::100]
 mcmc_thawed = mcmc.fit.thawed
 
-## Plots
+#################
+### Plots
+
 # Graphical settings
 edges = annuli.edges_arcmin
 xfig = 0.5*(edges[1:]+edges[:-1])
