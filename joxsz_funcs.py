@@ -577,7 +577,7 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     med_xsz, lo_xsz, hi_xsz = best_fit_xsz(data.sz, flatchain, fit, ci)
     sep = data.sz.radius.size//2
     r_am = data.sz.radius[sep:sep+med_xsz.size]/60
-    ax6.errorbar(data.sz.flux_data[0]/60, sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=2, color='black', 
+    ax6.errorbar(data.sz.flux_data[0]/60, data.sz.flux_data[1], yerr=data.sz.flux_data[2], fmt='o', markersize=2, color='black', 
                  label='SZ data')
     ax6.errorbar(r_am, med_xsz, color='r', label='Best-fit')
     ax6.fill_between(r_am, lo_xsz, hi_xsz, color='gold', label='95% CI')
