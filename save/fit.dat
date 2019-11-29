@@ -1,0 +1,16 @@
+likelihood = -305.2 + -26.3611 + 1.37556 = -330.185
+P_0 = <Param: val=0.25, minval=0, maxval=20, frozen=False>
+Z = <Param: val=0.0527, minval=0, maxval=1, frozen=False>
+\alpha = <Param: val=0, minval=-1, maxval=2, frozen=True>
+\beta = <Param: val=0.567, minval=0, maxval=4, frozen=False>
+\epsilon = <Param: val=7.28, minval=0, maxval=10, frozen=False>
+\gamma = <Param: val=3, minval=0, maxval=10, frozen=True>
+a = <Param: val=1.69, minval=0.1, maxval=10, frozen=False>
+b = <Param: val=5.06, minval=0.1, maxval=15, frozen=False>
+backscale = <ParamGaussian: val=0.987, prior_mu=1, prior_sigma=0.1, frozen=False>
+c = <Param: val=0.014, minval=0, maxval=3, frozen=True>
+log(T_{ratio}) = <Param: val=-0.0934, minval=-1, maxval=1, frozen=False>
+log(r_c) = <Param: val=1.95, minval=-1, maxval=3.46, frozen=False>
+log(r_s) = <Param: val=3.03, minval=0, maxval=3.46, frozen=False>
+n_0 = <Param: val=0.03, minval=1e-05, maxval=100, frozen=False>
+r_p = <Param: val=350, minval=5, maxval=3e+03, frozen=False>
