@@ -574,7 +574,7 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     ax5.tick_params(labelleft=False)
     ax5.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, yerr=band.cts**0.5/geomareas/band.areascales, 
                  color='b', fmt='o', markersize=2, label='X-ray data')
-    med_xsz, lo_xsz, hi_xsz = best_fit_xsz(sz, flatchain, fit, ci)
+    med_xsz, lo_xsz, hi_xsz = best_fit_xsz(data.sz, flatchain, fit, ci)
     sep = sz.radius.size//2
     r_am = sz.radius[sep:sep+med_xsz.size]/60
     ax6.errorbar(sz.flux_data[0]/60, sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=2, color='black', 
