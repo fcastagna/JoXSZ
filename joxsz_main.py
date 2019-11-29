@@ -166,7 +166,7 @@ pars[r'\alpha'].frozen = True
 pars['c'].frozen = True
 
 # parameter regulating the ratio between X-ray temperature and SZ temperature
-pars['log(T_{ratio})'].frozen = True
+pars['log(T_{ratio})'].frozen = False
 
 # do fitting of data with model
 fit = mb.Fit(pars, model, data)
