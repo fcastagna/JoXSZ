@@ -122,7 +122,7 @@ Z_cmpt = mb.CmptFlat('Z', annuli, defval=Z_solar, minval=0, maxval=1)
 
 # density profile
 ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
-# change parameter names
+# change parameter names for plotting reasons
 mb.CmptVikhDensity.vikhFunction = MethodType(mydens_vikhFunction, ne_cmpt)
 mb.CmptVikhDensity.defPars = MethodType(mydens_defPars, ne_cmpt)
 mb.CmptVikhDensity.prior = MethodType(mydens_prior, ne_cmpt)
