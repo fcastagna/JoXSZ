@@ -599,25 +599,23 @@ def best_fit_xsz(sz, chain, fit, ci):
     lo, hi = np.percentile(profs, [50-ci/2, 50+ci/2], axis=0)
     return med, lo, hi
 
-# =============================================================================
-# def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
-#     plt.clf()
-#     sep = sz.radius.size//2
-#     pdf = PdfPages(plotdir+'best_sz.pdf')
-#     plt.title('Compton parameter profile - best fit with %s' % ci+'% CI')
-#     plt.plot(sz.radius[sep:sep+med_xz.size], med_xz, color='b')
-#     plt.plot(sz.radius[sep:sep+med_xz.size], lo_xz, ':', color='b', label='_nolegend_')
-#     plt.plot(sz.radius[sep:sep+med_xz.size], hi_xz, ':', color='b', label='_nolegend_')
-#     plt.scatter(sz.flux_data[0], sz.flux_data[1], color='black')
-#     plt.errorbar(sz.flux_data[0], sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=4, color='black')
-#     plt.axhline(0, linestyle=':', color='black', label='_nolegend_')
-#     plt.xlabel('Radius (arcsec)')
-#     plt.ylabel('y * 10$^{4}$')
-#     plt.xlim(-2, 127)
-#     plt.legend(('(SZ + X) fit', 'SZ data'), loc='lower right')
-#     pdf.savefig()
-#     pdf.close()
-# =============================================================================
+def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
+    plt.clf()
+    sep = sz.radius.size//2
+    pdf = PdfPages(plotdir+'best_sz.pdf')
+    plt.title('Compton parameter profile - best fit with %s' % ci+'% CI')
+    plt.plot(sz.radius[sep:sep+med_xz.size], med_xz, color='b')
+    plt.plot(sz.radius[sep:sep+med_xz.size], lo_xz, ':', color='b', label='_nolegend_')
+    plt.plot(sz.radius[sep:sep+med_xz.size], hi_xz, ':', color='b', label='_nolegend_')
+    plt.scatter(sz.flux_data[0], sz.flux_data[1], color='black')
+    plt.errorbar(sz.flux_data[0], sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=4, color='black')
+    plt.axhline(0, linestyle=':', color='black', label='_nolegend_')
+    plt.xlabel('Radius (arcsec)')
+    plt.ylabel('y * 10$^{4}$')
+    plt.xlim(-2, 127)
+    plt.legend(('(SZ + X) fit', 'SZ data'), loc='lower right')
+    pdf.savefig()
+    pdf.close()
 
 def frac_int(edges):
     '''
