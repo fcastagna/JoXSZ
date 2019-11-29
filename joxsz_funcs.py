@@ -282,6 +282,10 @@ class CmptUPPTemperature(mb.Cmpt):
             T_XpT_SZ = 10**pars['log(T_{ratio})'].val
             T_X = T_SZ*T_XpT_SZ
             return T_X
+        
+    def computeProf(self, pars):
+        return self.temp_fun(pars, self.annuli.midpt_kpc)
+
 
 class CmptMyMass(mb.Cmpt):
     '''
