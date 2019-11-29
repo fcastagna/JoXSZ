@@ -130,10 +130,10 @@ mb.CmptVikhDensity.prior = MethodType(mydens_prior, ne_cmpt)
 # pressure profile
 press_cmpt = CmptPressure('p', annuli)
 
-# temperature profile
+# temperature profile (from pressure and electron-density)
 T_cmpt = CmptUPPTemperature('T', annuli, press_cmpt, ne_cmpt)
 
-# Non-hydrostatic model combining density, temperature and metallicity
+# Model combining density, temperature and metallicity
 model = mb.ModelNullPot(annuli, ne_cmpt, T_cmpt, Z_cmpt, NH_1022pcm2=NH_1022pcm2)
 
 # get default parameters
