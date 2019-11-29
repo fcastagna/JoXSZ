@@ -21,6 +21,6 @@ Beam data and transfer function data come from the [NIKA data release](http://lp
 - [corner](https://pypi.org/project/corner/)
 
 ### Credits
-`preprofit` Castagna F, Andreon S. [GitHub](https://github.com/fcastagna/preprofit). See [Castagna and Andreon 2019](https://ui.adsabs.harvard.edu/abs/2019A%26A...632A..22C/abstract).
+`preprofit` See [Castagna and Andreon 2019](https://ui.adsabs.harvard.edu/abs/2019A%26A...632A..22C/abstract) and [GitHub](https://github.com/fcastagna/preprofit).
 
-`MBProj2` Sanders J et al. [GitHub](https://github.com/jeremysanders/mbproj2). See [Sanders et al. 2018](https://ui.adsabs.harvard.edu/abs/2018MNRAS.474.1065S/abstract).
+`MBProj2` See [Sanders et al. 2018](https://ui.adsabs.harvard.edu/abs/2018MNRAS.474.1065S/abstract) and [GitHub](https://github.com/jeremysanders/mbproj2).
