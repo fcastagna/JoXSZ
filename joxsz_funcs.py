@@ -319,8 +319,9 @@ class CmptMyMass(mb.Cmpt):
     
 def mydens_defPars(self):
     '''
-    Default density profile parameters
-    ----------------------------------
+    Default density profile parameters.
+    Copied from MBProj2 changing the parameter names for plotting reasons
+    ---------------------------------------------------------------------
     n_0 = normalizing constant 
     r_c = core radius
     alpha = logarithmic slope at r/r_c << 1
@@ -352,8 +353,9 @@ def mydens_defPars(self):
 
 def mydens_vikhFunction(self, pars, radii_kpc):
     '''
-    Compute the Vikhlinin density profile
-    -------------------------------------
+    Compute the Vikhlinin density profile.
+    Copied from MBProj2 changing the parameter names for plotting reasons
+    ---------------------------------------------------------------------
     '''
     n_0 = pars['n_0'].val
     beta = pars[r'\beta'].val
@@ -373,8 +375,9 @@ def mydens_vikhFunction(self, pars, radii_kpc):
 
 def mydens_prior(self, pars):
     '''
-    Density profile parameters prior
-    --------------------------------
+    Density profile parameters prior.
+    Copied from MBProj2 changing the parameter names for plotting reasons
+    ---------------------------------------------------------------------
     '''   
     r_c = 10**pars['log(r_c)'].val
     r_s = 10**pars['log(r_s)'].val
