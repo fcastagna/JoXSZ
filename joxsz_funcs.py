@@ -588,18 +588,18 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     pdf.savefig()
     pdf.close()
 
+def best_fit_xsz(sz, chain, fit, ci):
+    profs = []
+    for pars in chain[::10]:
+        fit.updateThawed(pars)
+        out_prof = fit.get_sz_like(output='flux')
+        profs.append(out_prof)
+    profs = np.row_stack(profs)
+    med = np.median(profs, axis=0)
+    lo, hi = np.percentile(profs, [50-ci/2, 50+ci/2], axis=0)
+    return med, lo, hi
+
 # =============================================================================
-# def best_fit_xsz(sz, chain, fit, ci):
-#     profs = []
-#     for pars in chain[::10]:
-#         fit.updateThawed(pars)
-#         out_prof = fit.get_sz_like(output='flux')
-#         profs.append(out_prof)
-#     profs = np.row_stack(profs)
-#     med = np.median(profs, axis=0)
-#     lo, hi = np.percentile(profs, [50-ci/2, 50+ci/2], axis=0)
-#     return med, lo, hi
-# 
 # def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
 #     plt.clf()
 #     sep = sz.radius.size//2
