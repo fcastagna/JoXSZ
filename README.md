@@ -7,7 +7,7 @@
 
 As an example, we show the application of `JoXSZ` on the high-redshift cluster of galaxies CL J1226.9+3332 (z = 0.89).
 
-Beam data and transfer function data come from the [NIKA data release](http://lpsc.in2p3.fr/NIKA2LPSZ/nika2sz.release.php), while X-ray data come from Chandra (reference...).
+Beam data and transfer function data come from the [NIKA data release](http://lpsc.in2p3.fr/NIKA2LPSZ/nika2sz.release.php), while X-ray data come from *Chandra* observations, reduced following the standard procedures (e.g. [Andreon et al. 2019](https://ui.adsabs.harvard.edu/abs/2019A%26A...630A..78A/abstract)).
 
 ### Requirements
 `JoXSZ` requires the following:
@@ -21,6 +21,6 @@ Beam data and transfer function data come from the [NIKA data release](http://lp
 - [corner](https://pypi.org/project/corner/)
 
 ### Credits
-`preprofit` Castagna F, Andreon S. [PreProFit: Pressure Profile Fitter for galaxy clusters](https://ui.adsabs.harvard.edu/abs/2019A%26A...632A..22C/abstract).
+`preprofit` Castagna F, Andreon S. [GitHub](https://github.com/fcastagna/preprofit). See [Castagna and Andreon 2019](https://ui.adsabs.harvard.edu/abs/2019A%26A...632A..22C/abstract).
 
-`MBProj2` Sanders J et al. [Hydrostatic Chandra X-ray analysis of SPT-selected galaxy clusters - I. Evolution of profiles and core properties](https://ui.adsabs.harvard.edu/abs/2018MNRAS.474.1065S/abstract).
+`MBProj2` Sanders J et al. [GitHub](https://github.com/jeremysanders/mbproj2). See [Sanders et al. 2018](https://ui.adsabs.harvard.edu/abs/2018MNRAS.474.1065S/abstract).
