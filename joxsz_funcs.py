@@ -394,8 +394,8 @@ def get_sz_like(self, output='ll'):
         'chisq' = Chi-Squared
         'pp' = pressure profile
         'flux' = flux profile
-    --------------------------------------------------------------------------
-    RETURN: desired output or -inf whether theta is out of the parameter space
+    ----------------------
+    RETURN: desired output
     '''
     # pressure profile
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
