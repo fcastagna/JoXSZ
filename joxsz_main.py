@@ -189,6 +189,7 @@ mcmc.burnIn(nburn)
 # run mcmc proper and save the chain
 mcmc.run(nlength)
 mcmc.save(chainfilename)
+print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F')
 flatchain = mcmc.sampler.flatchain[::100]
 mcmc_thawed = mcmc.fit.thawed
