@@ -435,12 +435,14 @@ def get_sz_like(self, output='ll'):
 def getLikelihood(self, vals=None):
     '''
     Computes the joint X-SZ log-likelihood for the current parameters
-    -----------------------------------------------------------------
+    -----------------------------------------------------------------------------------------------------------------------------
+    RETURN: the log-likelihood value or -inf in case of parameter values not included in the parameter space or in case of set of
+            parameters yielding unphysical mass profiles
     '''
     # update parameters
     if vals is not None:
         self.updateThawed(vals)
-    # prior on parameters
+    # prior on parameters (-inf if at least one parameter value is out of the parameter space)
     parprior = sum((self.pars[p].prior() for p in self.pars))
     if not np.isfinite(parprior):
         return -np.inf
