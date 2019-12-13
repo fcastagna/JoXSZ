@@ -106,10 +106,10 @@ sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d, radiu
 # remove cache
 mb.xspechelper.deleteFile('countrate_cache.hdf5')
 
-# annuli object contains edges of annuli
+# annuli object contains edges of annuli (one annulus for each X-ray data measurement)
 annuli = mb.Annuli(getEdges(infgtempl, bandEs), cosmology)
 
-# load each band, chopping outer radius
+# load each X-ray band, chopping outer radius
 bands = []
 for bandE in bandEs:
     bands.append(loadBand(infgtempl, inbgtempl, bandE, rmf, arf))
@@ -192,8 +192,8 @@ mcmc.run(nlength)
 mcmc.save(chainfilename)
 print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F')
-flatchain = mcmc.sampler.flatchain[::100]
-mcmc_thawed = mcmc.fit.thawed
+flatchain = mcmc.sampler.flatchain[::100] # reduced chain (one in a hundred values)
+mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
 
 #################
 ### Plots
@@ -208,7 +208,7 @@ geomareas = np.pi*(edges[1:]**2-edges[:-1]**2)
 traceplot(mysamples, mcmc_thawed, nsteps=nlength, nw=nwalkers, plotdir=plotdir)
 triangle(mysamples, mcmc_thawed, plotdir)
 
-# Best fitting profiles
+# Best fitting profiles on SZ and X-ray surface brightness
 profs = []
 for pars in flatchain: #[-1000:]:
     fit.updateThawed(pars)
@@ -216,7 +216,7 @@ for pars in flatchain: #[-1000:]:
 lxsz, mxsz, hxsz = np.percentile(profs, [50-ci/2., 50, 50+ci/2.], axis=0)
 fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, flatchain, fit, ci, plotdir)
 
-# Radial profiles
+# Radial profiles (density, temperature(s), pressure, entropy, cooling time, gas mass)
 tdens = np.zeros((flatchain.shape[0], r_pp.size))
 ttemp = tdens.copy()
 tpress = tdens.copy() 
