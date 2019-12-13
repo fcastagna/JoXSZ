@@ -19,7 +19,7 @@ import h5py
 #################
 ## Global and local variables
 
-mystep = 2. # constant step in arcsec (values higher than (1/3)*FWHM of the SZ beam are not recommended)
+mystep = 2. # constant sampling step in arcsec for SZ analysis (values higher than (1/3)*FWHM of the SZ beam are not recommended)
 m_e = 0.5109989*1e3 # electron rest mass (keV)
 sigma_T = 6.6524587158*1e-25 # Thomson cross section (cm^2)
 R_b = 5000 # Radial cluster extent (kpc), serves as upper bound for Compton y parameter integration
@@ -65,17 +65,17 @@ infgtempl = files_x_dir+'/fg_prof_%04i_%04i.dat' # foreground profile
 inbgtempl = files_x_dir+'/bg_prof_%04i_%04i.dat' # background profile
 
 # name for outputs
-name = 'fit_modified_beta'
-plotdir = './plots/'
-savedir = './save/'
+name = 'fit_joxsz'
+plotdir = './plots/' # directory for the plots
+savedir = './save/' # directory for saved files
 
 # Uncertainty level
 ci = 95
 
 # MCMC parameters
-nburn = 2000 # number to burn
-nlength = 2000 # length of chain
-nwalkers = 30 # number of walkers
+nburn = 2000 # number of burn-in iteration
+nlength = 2000 # number of chain iterations (after burn-in)
+nwalkers = 30 # number of random walkers
 nthreads = 8 # number of processes/threads
 
 # whether to exclude unphysical masses from fit
@@ -84,6 +84,7 @@ exclude_unphy_mass = True
 #################
 ### Code
 
+# setting up the elements for SZ data analysis
 phys_const = [m_e, sigma_T]
 kpc_as = cosmology.kpc_per_arcsec # number of kpc per arcsec
 flux_data = read_xy_err(flux_filename, ncol=3) # radius (arcsec), flux density, statistical error
@@ -94,15 +95,15 @@ radius = np.arange(0, mymaxr+mystep, mystep) # array of radii in arcsec
 radius = np.append(-radius[:0:-1], radius) # from positive to entire axis
 sep = radius.size//2 # index of radius 0
 r_pp = np.arange(mystep*kpc_as, R_b+mystep*kpc_as, mystep*kpc_as) # radius in kpc used to compute the pressure profile
-ub = min(sep, r_pp.size) # ub=sep unless r500 is too low and then r_pp.size < sep
-d_mat = centdistmat(radius*kpc_as)
+ub = min(sep, r_pp.size) # ub=sep unless r_pp.size < sep
+d_mat = centdistmat(radius*kpc_as) # matrix of distances in kpc centered on 0 with step=mystep
 wn_as, tf = read_tf(tf_filename, approx=tf_approx, loc=loc, scale=scale, c=c) # wave number in arcsec^(-1), transmission
-filtering = filt_image(wn_as, tf, d_mat.shape[0], mystep)
-t_keV, compt_Jy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True)
+filtering = filt_image(wn_as, tf, d_mat.shape[0], mystep) # transfer function matrix
+t_keV, compt_Jy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True) # temperature-dependent conversion Compton to mJy
 convert = interp1d(t_keV, compt_Jy_beam*1e3, 'linear', fill_value='extrapolate')
-sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering)
+sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering) 
 
-#remove cache
+# remove cache
 mb.xspechelper.deleteFile('countrate_cache.hdf5')
 
 # annuli object contains edges of annuli
