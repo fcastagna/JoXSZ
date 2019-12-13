@@ -269,8 +269,8 @@ class CmptUPPTemperature(mb.Cmpt):
     def temp_fun(self, pars, r_kpc, getT_SZ=False):
         '''
         Compute the temperature profile (X-ray by default, SZ alternatively).
-        Please note that T_X = T_SZ if T_ratio is not fitted but fixed to 1!
-        --------------------------------------------------------------------
+        Please note that T_X = T_SZ if log(T_ratio) is not fitted but fixed to 0!
+        -------------------------------------------------------------------------
         getT_SZ = whether to return T_SZ (True/False, default is False)
         '''
         pr = self.press_prof.press_fun(pars, r_kpc)
