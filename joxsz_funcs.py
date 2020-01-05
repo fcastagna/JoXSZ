@@ -11,6 +11,7 @@ from scipy.signal import fftconvolve
 from scipy.fftpack import fft2, ifft2
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
+
 import corner
 
 plt.style.use('classic')
@@ -335,7 +336,7 @@ def mydens_defPars(self):
     beta_2 = shape parameter
     '''
     pars = {
-        'n_0': mb.Param(-3., minval=-7., maxval=2.),
+        'n_0': mb.Param(1e-3, minval=1e-5, maxval=1e2),
         r'\beta': mb.Param(2/3., minval=0., maxval=4.),
         'log(r_c)': mb.Param(2.3, minval=-1., maxval=3.7),
         'log(r_s)': mb.Param(2.7, minval=0, maxval=3.7),
@@ -345,7 +346,7 @@ def mydens_defPars(self):
         }
     if self.mode == 'double':
         pars.update({
-            'n_{02}': mb.Param(-1., minval=-7., maxval=2.),
+            'n_{02}': mb.Param(1e-1, minval=1e-5, maxval=1e2),
             r'\beta_2': mb.Param(0.5, minval=0., maxval=4.),
             'log(r_{c2})': mb.Param(1.7, minval=-1., maxval=3.7),
             })
