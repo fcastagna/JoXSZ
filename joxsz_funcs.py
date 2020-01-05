@@ -462,7 +462,7 @@ def getLikelihood(self, vals=None):
     prior = self.model.prior(self.pars)+parprior
     # JoXSZ log-likelihood
     totlike = float(like+prior+sz_like)
-    # print best fitting parameters
+    # save best fitting parameters
     if mb.fit.debugfit and (totlike-self.bestlike) > 0.1:
         self.bestlike = totlike
         with mb.utils.AtomicWriteFile("%s/fit.dat" % self.savedir) as fout:
