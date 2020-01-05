@@ -11,8 +11,8 @@ import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
                          CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like, 
-                         getLikelihood, prelimfit, traceplot, triangle, fitwithmod, best_fit_xsz, plot_best_sz, my_rad_profs, 
-                         plot_rad_profs, mass_r_delta, m_r_delta, mass_plot)
+                         getLikelihood, prelimfit, traceplot, triangle, fitwithmod, plot_best_sz, my_rad_profs, plot_rad_profs, 
+                         mass_r_delta, m_r_delta, mass_plot)
 from types import MethodType
 import h5py
 
