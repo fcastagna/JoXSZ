@@ -394,7 +394,7 @@ def get_sz_like(self, output='ll'):
         'll' = log-likelihood
         'chisq' = Chi-Squared
         'pp' = pressure profile
-        'flux' = flux profile
+        'bright' = surface brightness profile
     ----------------------
     RETURN: desired output
     '''
@@ -428,10 +428,10 @@ def get_sz_like(self, output='ll'):
         return chisq
     elif output == 'pp':
         return pp
-    elif output == 'flux':
+    elif output == 'bright':
         return map_prof
     else:
-        raise RuntimeError('Unrecognised output name (must be "ll", "chisq", "pp" or "flux")')
+        raise RuntimeError('Unrecognised output name (must be "ll", "chisq", "pp" or "bright")')
 
 def getLikelihood(self, vals=None):
     '''
@@ -602,7 +602,7 @@ def best_fit_xsz(sz, chain, fit, ci):
     profs = []
     for pars in chain[::10]:
         fit.updateThawed(pars)
-        out_prof = fit.get_sz_like(output='flux')
+        out_prof = fit.get_sz_like(output='bright')
         profs.append(out_prof)
     profs = np.row_stack(profs)
     med = np.median(profs, axis=0)
