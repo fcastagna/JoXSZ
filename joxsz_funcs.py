@@ -471,27 +471,7 @@ def getLikelihood(self, vals=None):
                 mb.utils.uprint("%s = %s" % (p, self.pars[p]), file=fout)
     return totlike
 
-# (...)
-def prelimfit(data, myprofs, geomareas, xfig, errxfig, plotdir='./'):
-    pdf = PdfPages(plotdir+'prelimfit.pdf')
-    for i, (band, prof) in enumerate(zip(data.bands, myprofs)):
-        plt.subplot(2, 3, i+1)
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.axis([0.08, 1.2*xfig.max(), 1, 2*(band.cts/geomareas/band.areascales).max()])
-        plt.xlabel('r [arcmin]')
-        plt.ylabel('counts / area [cts arcmin$^{-2}$]')
-        plt.text(0.1, 1.2, '[%g-%g] keV' % (band.emin_keV, band.emax_keV))
-        plt.plot(xfig, myprofs[i]/geomareas/band.areascales, color='r')
-        plt.plot(xfig, band.backrates*band.exposures, linestyle=':', color='b')
-        plt.scatter(xfig, band.cts/geomareas/band.areascales, color='darkblue')
-        plt.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, yerr=band.cts**0.5/geomareas/band.areascales, 
-                     fmt='o')
-    plt.subplots_adjust(wspace=0.45, hspace=0.35)	
-    pdf.savefig()
-    pdf.close()
-
-def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, plotdir='./'):
+def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, labsize=18, ticksize=10, plotdir='./'):
     '''
     Traceplot of the MCMC
     ---------------------
@@ -501,6 +481,8 @@ def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, plotdir='./')
     nw = number of random walkers
     plotw = number of random walkers that we wanna plot (default is 20)
     ppp = number of plots per page
+    labsize = label font size
+    ticksize = ticks font size
     plotdir = directory where to place the plot
     '''
     plt.clf()
@@ -512,36 +494,39 @@ def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, plotdir='./')
         for j in range(nw)[::nw_step]:
             plt.plot(np.arange(nsteps)+1, mysamples[j::nw,i], linewidth=.2)
             plt.tick_params(labelbottom=False)
-        plt.ylabel('%s' %param_latex[i], fontdict={'fontsize': 18})
+        plt.ylabel('%s' %param_latex[i], fontdict={'fontsize': labsize})ù
+        plt.tick_params('y', labelsize=ticksize)
         if (abs((i+1)%ppp) < 0.01):
             plt.tick_params(labelbottom=True)
             plt.xlabel('Iteration number')
-            pdf.savefig()
+            pdf.savefig(bbox_inches='tight')
             if i+1 < mysamples.shape[1]:
                 plt.clf()
         elif i+1 == mysamples.shape[1]:
             plt.tick_params(labelbottom=True)
             plt.xlabel('Iteration number')
-            pdf.savefig()
+            pdf.savefig(bbox_inches='tight')
     pdf.close()
 
-def triangle(mysamples, param_names, plotdir='./'):
+def triangle(mysamples, param_names, labsize=25, titsize=15, plotdir='./'):
     '''
     Univariate and multivariate distribution of the parameters in the MCMC
     ----------------------------------------------------------------------
     mysamples = array of sampled values in the chain
     param_names = names of the parameters
+    labsize = label font size
+    titsize = titles font size
     plotdir = directory where to place the plot
     '''
     param_latex = ['${}$'.format(i) for i in param_names]
     plt.clf()
     pdf = PdfPages(plotdir+'cornerplot.pdf')
     corner.corner(mysamples, labels=param_latex, quantiles=np.repeat(.5, len(param_latex)), show_titles=True, 
-                  title_kwargs={'fontsize': 15}, label_kwargs={'fontsize': 25})
-    pdf.savefig()
+                  title_kwargs={'fontsize': titsize}, label_kwargs={'fontsize': labsize})
+    pdf.savefig(bbox_inches='tight')
     pdf.close()
 
-def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, plotdir='./'):
+def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, labsize=25, ticksize=20, textsize=30, plotdir='./'):
     '''
     Surface brightness profiles (points with error bars) and best fitting profiles with CI
     --------------------------------------------------------------------------------------
@@ -552,31 +537,33 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     flatchain = array of sampled values in the chain
     fit = Fit object
     ci = confidence interval level
+    labsize = label font size
+    ticksize = ticks font size
+    textsize = text font size
     plotdir = directory where to place the plot
     '''
     plt.clf()
     pdf = PdfPages(plotdir+'fitall.pdf')
-    f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(8, 6))
+    f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(36, 14))
     for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
         eval('ax'+str(i+1)).set_xscale('log')
         eval('ax'+str(i+1)).set_yscale('log')
         eval('ax'+str(i+1)).axis([0.08, 1.2*xfig.max(), 1, 5e3])
-        eval('ax'+str(i+1)).text(.5, 1e3, '[%g-%g] keV' % (band.emin_keV, band.emax_keV))	
+        eval('ax'+str(i+1)).text(2, 1e3, '[%g-%g] keV' % (band.emin_keV, band.emax_keV), fontdict={'fontsize': textsize})	
         eval('ax'+str(i+1)).errorbar(xfig, mmed/geomareas/band.areascales, color='r', label='_nolegend_')
         eval('ax'+str(i+1)).fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold', 
                                          label='_nolegend_')
         eval('ax'+str(i+1)).errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
-                                     yerr=band.cts**0.5/geomareas/band.areascales, fmt='o', markersize=2, label='_nolegend_')
-    ax1.set_ylabel('$S_X$ (counts·s$^{-1}$·arcmin$^{-2}$)')
-    ax4.set_ylabel('$S_X$ (counts·s$^{-1}$·arcmin$^{-2}$)')
-    ax4.set_xlabel('Radius (arcmin)')
-    ax5.set_xlabel('Radius (arcmin)')
-    ax3.tick_params(labelbottom=True)
-    ax2.tick_params(labelleft=False)
-    ax3.tick_params(labelleft=False)
-    ax5.tick_params(labelleft=False)
-    ax5.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, yerr=band.cts**0.5/geomareas/band.areascales, 
-                 color='b', fmt='o', markersize=2, label='X-ray data')
+                                     yerr=band.cts**0.5/geomareas/band.areascales, fmt='o', markersize=3, color='black', 
+                                     label='_nolegend_')
+            yerr=band.cts**0.5/geomareas/band.areascales, fmt='o', markersize=3, color='black', label='_nolegend_')
+        eval('ax'+str(i+1)).set_ylabel('$S_X$ (counts·s$^{-1}$·arcmin$^{-2}$)', fontdict={'fontsize': labsize})
+        eval('ax'+str(i+1)).set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
+        eval('ax'+str(i+1)).tick_params(labelsize=ticksize, length=10, which='major')
+        eval('ax'+str(i+1)).tick_params(labelsize=ticksize, length=6, which='minor')
+    ax5.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig,
+                 yerr=band.cts**0.5/geomareas/band.areascales, color='black', 
+                 fmt='o', markersize=3, label='X-ray data') # for legend reasons
     med_xsz, lo_xsz, hi_xsz = best_fit_xsz(data.sz, flatchain, fit, ci)
     sep = data.sz.radius.size//2
     r_am = data.sz.radius[sep:sep+med_xsz.size]/60
@@ -584,18 +571,17 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
                  label='SZ data')
     ax6.errorbar(r_am, med_xsz, color='r', label='Best-fit')
     ax6.fill_between(r_am, lo_xsz, hi_xsz, color='gold', label='95% CI')
-    ax6.set_xlabel('Radius (arcmin)')
-    ax6.set_ylabel('$S_{SZ}$ (mJy·beam$^{.1}$)')
-    ax6.set_xlim(-2/60, 127/60)
+    ax6.set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
+    ax6.set_ylabel('$S_{SZ}$ (mJy·beam$^{-1}$)', fontdict={'fontsize': labsize})
+    ax6.set_xlim(0, 2)
+    ax6.set_ylim(-2.7, .2)
     ax6.set_xscale('linear')
-    ax6.yaxis.set_label_position("right")
-    ax6.yaxis.tick_right()
-    ax6.tick_params('y', labelsize=8)
+    ax6.tick_params(labelsize=ticksize)
     hand_sz, lab_sz = ax6.get_legend_handles_labels()
     hand_x, lab_x = ax5.get_legend_handles_labels()
     f.legend([hand_sz[2], hand_sz[0], hand_x[0], hand_sz[1]], [lab_sz[2], lab_sz[0], lab_x[0], lab_sz[1]], 
              loc='upper center', bbox_to_anchor= (.5, 0.98), ncol=4, borderaxespad=0)
-    pdf.savefig()
+    pdf.savefig(bbox_inches='tight')
     pdf.close()
 
 def best_fit_xsz(sz, chain, fit, ci):
