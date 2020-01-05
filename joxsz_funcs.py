@@ -528,15 +528,15 @@ def triangle(mysamples, param_names, labsize=25, titsize=15, plotdir='./'):
 
 def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, labsize=25, ticksize=20, textsize=30, plotdir='./'):
     '''
-    Surface brightness profiles (points with error bars) and best fitting profiles with CI
-    --------------------------------------------------------------------------------------
+    Surface brightness profiles (points with error bars) and best fitting profiles with uncertainties
+    -------------------------------------------------------------------------------------------------
     data = Data object containing information on the X-ray bands and SZ data
-    lo, med, hi = best (median) fitting profiles with CI
+    lo, med, hi = best (median) fitting profiles with uncertainties
     geomareas = annuli areas for X-ray data
     xfig, errxfig = radii of X-ray data and related errors
     flatchain = array of sampled values in the chain
     fit = Fit object
-    ci = confidence interval level
+    ci = uncertainty level of the interval
     labsize = label font size
     ticksize = ticks font size
     textsize = text font size
@@ -564,7 +564,7 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     ax5.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig,
                  yerr=band.cts**0.5/geomareas/band.areascales, color='black', 
                  fmt='o', markersize=3, label='X-ray data') # for legend reasons
-    med_xsz, lo_xsz, hi_xsz = best_fit_xsz(data.sz, flatchain, fit, ci)
+    med_xsz, lo_xsz, hi_xsz = best_fit_xsz(flatchain, fit, ci)
     sep = data.sz.radius.size//2
     r_am = data.sz.radius[sep:sep+med_xsz.size]/60
     ax6.errorbar(data.sz.flux_data[0]/60, data.sz.flux_data[1], yerr=data.sz.flux_data[2], fmt='o', markersize=2, color='black', 
@@ -584,7 +584,16 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     pdf.savefig(bbox_inches='tight')
     pdf.close()
 
-def best_fit_xsz(sz, chain, fit, ci):
+def best_fit_xsz(flatchain, fit, ci):
+    '''
+    Computes the surface brightness profile (median and interval) for the best fitting parameters
+    ---------------------------------------------------------------------------------------------
+    flatchain = array of sampled values in the chain
+    fit = Fit object
+    ci = uncertainty level of the interval
+    ------------------------------------------------
+    RETURN: median and interval profiles
+    '''
     profs = []
     for pars in chain[::10]:
         fit.updateThawed(pars)
@@ -596,6 +605,14 @@ def best_fit_xsz(sz, chain, fit, ci):
     return med, lo, hi
 
 def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
+    '''
+    SZ surface brightness profile (points with error bars) and best fitting profile with uncertainty interval
+    ---------------------------------------------------------------------------------------------------------
+    sz = SZ data object
+    lo_xz, med_xz, hi_xz = best (median) fitting profiles with uncertainties
+    ci = uncertainty level of the interval
+    plotdir = directory where to place the plot    
+    '''
     plt.clf()
     sep = sz.radius.size//2
     pdf = PdfPages(plotdir+'best_sz.pdf')
@@ -610,12 +627,13 @@ def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
     plt.ylabel('y * 10$^{4}$')
     plt.xlim(-2, 127)
     plt.legend(('(SZ + X) fit', 'SZ data'), loc='lower right')
-    pdf.savefig()
+    pdf.savefig(bbox_inches='tight')
     pdf.close()
 
 def frac_int(edges):
     '''
     Fraction of mass of shell which is in the inner and outer halves of the midpoint
+    Adapted from MBProj2
     --------------------------------------------------------------------------------
     edges = edges of the shells containing X-ray data (cm)
     ----------------------------------------------
@@ -644,27 +662,27 @@ def my_rad_profs(vals, r_kpc, fit):
     # temperature (SZ)
     temp = fit.model.T_cmpt.temp_fun(pars, r_kpc, getT_SZ=True)
     # temperature (X-ray)
-    xtmp = fit.model.T_cmpt.temp_fun(pars, r_kpc)
+    tempx = fit.model.T_cmpt.temp_fun(pars, r_kpc)
     # pressure
     press = fit.press.press_fun(pars, r_kpc)
     # entropy
     entr = temp/dens**(2/3)
     # cooling time
-    flux = fit.data.annuli.ctrate.getFlux(temp, np.repeat(pars['Z'].val, temp.size), dens)
-    cool = (5/2)*dens*(1+1/ne_nH)*temp*keV_erg/(flux*4*np.pi*(fit.data.annuli.cosmology.D_L*Mpc_cm)**2)/yr_s
+    cool = (5/2)*dens*(1+1/ne_nH)*temp*keV_erg/(fit.data.annuli.ctrate.getFlux(temp, np.repeat(pars['Z'].val, temp.size), dens)*
+                                                4*np.pi*(fit.data.annuli.cosmology.D_L*Mpc_cm)**2)/yr_s
     # cumulative gas mass
     edg_cm = np.append(r_kpc[0]/2, r_kpc+r_kpc[0]/2)*kpc_cm
     mgas = dens*mu_e*mu_g/solar_mass_g*4/3*np.pi*(edg_cm[1:]**3-edg_cm[:-1]**3)
     cmgas = mgas*frac_int(edg_cm)+np.concatenate(([0], np.cumsum(mgas)[:-1]))
-    return dens, temp, press, entr, cool, cmgas, xtmp
+    return dens, temp, press, entr, cool, cmgas, tempx
 
-def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, xtmp, plotdir='./'):
+def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, tempx, plotdir='./'):
     '''
     Plot the thermodynamic radial profiles
     --------------------------------------
     r_kpc = radius (kpc)
     xmin, xmax = x-axis boundaries for the plot
-    dens, temp, press, entr, cool, gmss, xtmp = thermodynamic best fitting profiles (median and CI)
+    dens, temp, press, entr, cool, gmss, tempx = thermodynamic best fitting profiles (median and interval)
     plotdir = directory where to place the plot
     '''
     pdf = PdfPages(plotdir+'radial_profiles.pdf')
@@ -677,17 +695,17 @@ def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, xtmp, 
     for (i, j) in enumerate([[dens, 'Density (cm$^{-3}$)'], [temp, 'Temperature (keV)'], [prss, 'Pressure (keV cm$^{-3}$)'], 
                              [entr, 'Entropy (keV cm$^2$)'], [cool, 'Cooling time (Gyr)'], 
                              [gmss, 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']]):
-        eval('ax'+str(i+1)).plot(r_kpc[e_ind], j[0][1][e_ind])
-        eval('ax'+str(i+1)).fill_between(r_kpc[e_ind], j[0][0][e_ind], j[0][2][e_ind], color='powderblue')
+        eval('ax'+str(i+1)).plot(r_kpc[e_ind], j[0][1, e_ind])
+        eval('ax'+str(i+1)).fill_between(r_kpc[e_ind], j[0][0, e_ind], j[0][2, e_ind], color='powderblue')
         eval('ax'+str(i+1)).set_ylabel(j[1])
-    if temp[1][0] != xtmp[1][0]:
-        ax2.plot(r_kpc[e_ind], xtmp[1][e_ind]) # add X temperature
+    if temp[1][0] != tempx[1][0]:
+        ax2.plot(r_kpc[e_ind], tempx[1][e_ind]) # add X temperature
     ax5.set_xlabel('Radius (kpc)')
     ax6.set_xlabel('Radius (kpc)')
     ax2.yaxis.set_label_position('right')
     ax4.yaxis.set_label_position('right')
     ax6.yaxis.set_label_position('right')
-    pdf.savefig()
+    pdf.savefig(bbox_inches='tight')
     pdf.close()
 
 def mass_r_delta(r_kpc, cosmo, delta=500):
@@ -709,7 +727,7 @@ def mass_r_delta(r_kpc, cosmo, delta=500):
     rho_c = 3*HZ**2/(8*np.pi*G_cgs)
     # radius (cm)
     r_cm = r_kpc*kpc_cm   
-    # mass (solar masses)
+    # M(< r_delta) (g*solar masses)
     mass_r_delta = 4/3*np.pi*rho_c*delta*r_cm**3/solar_mass_g
     return mass_r_delta
 
@@ -733,7 +751,8 @@ def m_r_delta(pars, fit, r_kpc, cosmo, delta=500):
     m_delta = fit.mass_cmpt.mass_fun(fit.pars, r_delta)
     return m_prof, r_delta, m_delta
 
-def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_md, low_md, hig_md, m_vd, plotdir='./'):
+def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_md, low_md, hig_md, m_vd, xmin, xmax, labsize=23, 
+              ticksize=20, textsize=23, otdir='./'):
     '''
     Cumulative mass profile plot
     ----------------------------
@@ -742,6 +761,10 @@ def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_m
     med_rd, low_rd, hig_rd = overdensity radius with CI boundaries
     med_md, low_md, hig_md = overdensity mass with CI boundaries
     m_vd = cumulative mass profile in terms of volume and density
+    xmin, xmax = limits on the X-axis
+    labsize = label font size
+    ticksize = ticks font size
+    textsize = text font size
     plotdir = directory where to place the plot
     '''
     pdf = PdfPages(plotdir+'r500+m500.pdf')
@@ -756,12 +779,13 @@ def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_m
     plt.hlines(hig_md, 0, hig_rd, linestyle=':', color='black')
     plt.xscale('log')
     plt.yscale('log')
-    plt.xlim(100, 1300)
-    plt.ylim(1e13, 1e15)
-    plt.xlabel('Radius (kpc)')
-    plt.ylabel('Total mass (M$_\odot$)')
-    plt.text(80, med_md, '$M_{500}$')
-    plt.text(low_rd, 7e12, '$r_{500}$')
-    plt.text(3e2, 2.5e13, '$M(r)=\\frac{4}{3} \\pi r^3 500 \\rho_c(z)$', rotation=53, rotation_mode='anchor')
-    pdf.savefig()
+    plt.xlim(xmin, xmax)
+    plt.xlabel('Radius (kpc)', fontdict={'fontsize': labsize})
+    plt.ylabel('Total mass (M$_\odot$)', fontdict={'fontsize': labsize})
+    plt.text(xmin-20, med_md, '$M_{500}$', fontdict={'fontsize': textsize})
+    plt.text(low_rd, 6.5e12, '$r_{500}$', fontdict={'fontsize': textsize})
+    plt.text(3e2, 2.5e13, '$M(r)=500 \\rho_c(z) V$', rotation=52.5, rotation_mode='anchor', fontdict={'fontsize': textsize})
+    plt.tick_params(labelsize=ticksize, length=5, which='major')
+    plt.tick_params(labelsize=ticksize, length=3, which='minor')
+    pdf.savefig(bbox_inches='tight')
     pdf.close()
