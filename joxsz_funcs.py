@@ -653,7 +653,7 @@ def my_rad_profs(vals, r_kpc, fit):
     fit = Fit object
     --------------------------------------------------------------------------------
     RETURN: density(cm^{-3}), temperature (keV), pressure (keV*cm^{-3}), 
-            entropy (keV*cm^2), cooling time (Gyr), cumulative gas mass (solar mass)
+            entropy (keV*cm^2), cooling time (yr), cumulative gas mass (solar mass)
     '''
     fit.updateThawed(vals)
     pars = fit.pars
@@ -693,8 +693,8 @@ def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, tempx,
     [i.set_yscale('log') for i in (ax1, ax2, ax3, ax4, ax5, ax6)]
     ax1.set_xlim(xmin, xmax)
     for (i, j) in enumerate([[dens, 'Density (cm$^{-3}$)'], [temp, 'Temperature (keV)'], [prss, 'Pressure (keV cm$^{-3}$)'], 
-                             [entr, 'Entropy (keV cm$^2$)'], [cool, 'Cooling time (Gyr)'], 
-                             [gmss, 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']]):
+                             [entr, 'Entropy (keV cm$^2$)'], [cool/1e9, 'Cooling time (Gyr)'], 
+                             [gmss/1e12, 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']]):
         eval('ax'+str(i+1)).plot(r_kpc[e_ind], j[0][1, e_ind])
         eval('ax'+str(i+1)).fill_between(r_kpc[e_ind], j[0][0, e_ind], j[0][2, e_ind], color='powderblue')
         eval('ax'+str(i+1)).set_ylabel(j[1])
