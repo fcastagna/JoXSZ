@@ -494,7 +494,7 @@ def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, labsize=18, t
         for j in range(nw)[::nw_step]:
             plt.plot(np.arange(nsteps)+1, mysamples[j::nw,i], linewidth=.2)
             plt.tick_params(labelbottom=False)
-        plt.ylabel('%s' %param_latex[i], fontdict={'fontsize': labsize})ù
+        plt.ylabel('%s' %param_latex[i], fontdict={'fontsize': labsize})
         plt.tick_params('y', labelsize=ticksize)
         if (abs((i+1)%ppp) < 0.01):
             plt.tick_params(labelbottom=True)
