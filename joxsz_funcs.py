@@ -594,7 +594,7 @@ def best_fit_xsz(flatchain, fit, ci):
     RETURN: median and interval profiles
     '''
     profs = []
-    for pars in chain[::10]:
+    for pars in flatchain[::10]:
         fit.updateThawed(pars)
         out_prof = fit.get_sz_like(output='bright')
         profs.append(out_prof)
@@ -751,7 +751,7 @@ def m_r_delta(pars, fit, r_kpc, cosmo, delta=500):
     return m_prof, r_delta, m_delta
 
 def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_md, low_md, hig_md, m_vd, xmin, xmax, labsize=23, 
-              ticksize=20, textsize=23, otdir='./'):
+              ticksize=20, textsize=23, plotdir='./'):
     '''
     Cumulative mass profile plot
     ----------------------------
