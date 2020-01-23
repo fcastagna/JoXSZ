@@ -765,7 +765,7 @@ def m_r_delta(pars, fit, r_kpc, cosmo, delta=500):
     return m_prof, r_delta, m_delta
 
 def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_md, low_md, hig_md, m_vd, xmin=100, xmax=1000, 
-              labsize=23, ticksize=20, textsize=23, plotdir='./'):
+              ymin=1e11, ymax=1e16, labsize=23, ticksize=20, textsize=23, plotdir='./'):
     '''
     Cumulative mass profile plot
     ----------------------------
@@ -775,12 +775,14 @@ def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_m
     med_md, low_md, hig_md = overdensity mass with CI boundaries
     m_vd = cumulative mass profile in terms of volume and density
     xmin, xmax = limits on the X-axis
+    ymin, ymax = limits on the Y-axis
     labsize = label font size
     ticksize = ticks font size
     textsize = text font size
     plotdir = directory where to place the plot
     '''
-    pdf = PdfPages(plotdir+'r500+m500.pdf')
+    pdf = PdfPages(plotdir+'mass_hse.pdf')
+    plt.clf()
     plt.errorbar(r_kpc, med_mass)
     plt.fill_between(r_kpc, low_mass, hig_mass, color='powderblue')
     plt.errorbar(r_kpc, m_vd, color='g')    
@@ -793,11 +795,11 @@ def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_m
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(xmin, xmax)
+    plt.ylim(ymin, ymax)
     plt.xlabel('Radius (kpc)', fontdict={'fontsize': labsize})
     plt.ylabel('Total mass (M$_\odot$)', fontdict={'fontsize': labsize})
-    plt.text(xmin-20, med_md, '$M_{500}$', fontdict={'fontsize': textsize})
-    plt.text(low_rd, 6.5e12, '$r_{500}$', fontdict={'fontsize': textsize})
-    plt.text(3e2, 2.5e13, '$M(r)=500 \\rho_c(z) V$', rotation=52.5, rotation_mode='anchor', fontdict={'fontsize': textsize})
+    plt.text(xmin-xmin/5, med_md, '$M_{500}$', fontdict={'fontsize': textsize})
+    plt.text(low_rd, ymin-ymin/2, '$r_{500}$', fontdict={'fontsize': textsize})
     plt.tick_params(labelsize=ticksize, length=5, which='major')
     plt.tick_params(labelsize=ticksize, length=3, which='minor')
     pdf.savefig(bbox_inches='tight')
