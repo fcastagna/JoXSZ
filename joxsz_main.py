@@ -205,7 +205,7 @@ geomareas = np.pi*(edges[1:]**2-edges[:-1]**2)
 
 # Bayesian diagnostics
 traceplot(mysamples, mcmc_thawed, nsteps=nlength, nw=nwalkers, plotdir=plotdir)
-triangle(mysamples, mcmc_thawed, plotdir)
+triangle(mysamples, mcmc_thawed, plotdir=plotdir)
 
 # Best fitting profiles on SZ and X-ray surface brightness
 profs = []
@@ -213,7 +213,7 @@ for pars in flatchain: #[-1000:]:
     fit.updateThawed(pars)
     profs.append(fit.calcProfiles())
 lxsz, mxsz, hxsz = np.percentile(profs, [50-ci/2., 50, 50+ci/2.], axis=0)
-fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, flatchain, fit, ci, plotdir)
+fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, flatchain, fit, ci, plotdir=plotdir)
 
 # Radial profiles (density, temperature(s), pressure, entropy, cooling time, gas mass)
 tdens = np.zeros((flatchain.shape[0], r_pp.size))
@@ -227,7 +227,7 @@ for j in range(flatchain.shape[0]):
     tdens[j], ttemp[j], tpress[j], tentr[j], tcool[j], tgmass[j], txtmp[j] = my_rad_profs(flatchain[j,:], r_pp, fit)
 get_profs = lambda x: np.percentile(x, [50-ci/2., 50, 50+ci/2.], axis=0)
 dens, prss, temp, entr, cool, gmss, xtmp = map(get_profs, [tdens, ttemp, tpress, tentr, tcool, tgmass, txtmp])
-plot_rad_profs(r_pp, 1e2, 1e3, dens, temp, prss, entr, cool, gmss, xtmp, plotdir)
+plot_rad_profs(r_pp, 1e2, 1e3, dens, temp, prss, entr, cool, gmss, xtmp, plotdir=plotdir)
 
 # Mass computation (under the assumption of hydrostatic equilibrium)
 # mass profile with overdensity=500
@@ -243,4 +243,4 @@ lmss, mmss, hmss = np.percentile(mass_prof, [50-ci/2., 50, 50+ci/2.], axis=0)
 lr_d, mr_d, hr_d = np.percentile(r_delta, [50-ci/2., 50, 50+ci/2.], axis=0)
 lm_d, mm_d, hm_d = np.percentile(m_delta, [50-ci/2., 50, 50+ci/2.], axis=0)
 # total mass profile
-mass_plot(r_pp, mmss, lmss, hmss, mr_d, lr_d, hr_d, mm_d, lm_d, hm_d, m_vd, plotdir)
+mass_plot(r_pp, mmss, lmss, hmss, mr_d, lr_d, hr_d, mm_d, lm_d, hm_d, m_vd, plotdir=plotdir)
