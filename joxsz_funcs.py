@@ -711,6 +711,8 @@ def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, tempx,
         eval('ax'+str(i+1)).set_ylabel(j[1])
     if temp[1][0] != tempx[1][0]:
         ax2.plot(r_kpc[e_ind], tempx[1][e_ind]) # add X temperature
+        ax2.fill_between(r_kpc[e_ind], tempx[0, e_ind], tempx[2, e_ind], color='lightgreen', alpha=0.25)
+    ax2.set_yscale('linear')
     ax5.set_xlabel('Radius (kpc)')
     ax6.set_xlabel('Radius (kpc)')
     ax2.yaxis.set_label_position('right')
