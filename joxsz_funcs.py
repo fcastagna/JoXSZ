@@ -556,7 +556,6 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
         eval('ax'+str(i+1)).errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
                                      yerr=band.cts**0.5/geomareas/band.areascales, fmt='o', markersize=3, color='black', 
                                      label='_nolegend_')
-            yerr=band.cts**0.5/geomareas/band.areascales, fmt='o', markersize=3, color='black', label='_nolegend_')
         eval('ax'+str(i+1)).set_ylabel('$S_X$ (counts·s$^{-1}$·arcmin$^{-2}$)', fontdict={'fontsize': labsize})
         eval('ax'+str(i+1)).set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
         eval('ax'+str(i+1)).tick_params(labelsize=ticksize, length=10, which='major')
