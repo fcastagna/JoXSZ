@@ -65,8 +65,8 @@ inbgtempl = files_x_dir+'/bg_prof_%04i_%04i.dat' # background profile
 
 # name for outputs
 name = 'fit_joxsz'
-plotdir = './plots/' # directory for the plots
-savedir = './save/' # directory for saved files
+plotdir = './' # directory for the plots
+savedir = './' # directory for saved files
 
 # Uncertainty level
 ci = 95
