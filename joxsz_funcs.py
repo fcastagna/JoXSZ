@@ -750,8 +750,8 @@ def m_r_delta(pars, fit, r_kpc, cosmo, delta=500):
     m_delta = fit.mass_cmpt.mass_fun(fit.pars, r_delta)
     return m_prof, r_delta, m_delta
 
-def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_md, low_md, hig_md, m_vd, xmin, xmax, labsize=23, 
-              ticksize=20, textsize=23, plotdir='./'):
+def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_md, low_md, hig_md, m_vd, xmin=100, xmax=1000, 
+              labsize=23, ticksize=20, textsize=23, plotdir='./'):
     '''
     Cumulative mass profile plot
     ----------------------------
