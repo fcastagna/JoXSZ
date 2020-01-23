@@ -227,7 +227,7 @@ txtmp = tdens.copy()
 for j in range(flatchain.shape[0]):
     tdens[j], ttemp[j], tpress[j], tentr[j], tcool[j], tgmass[j], txtmp[j] = my_rad_profs(flatchain[j,:], r_pp, fit)
 get_profs = lambda x: np.percentile(x, [50-ci/2., 50, 50+ci/2.], axis=0)
-dens, prss, temp, entr, cool, gmss, xtmp = map(get_profs, [tdens, ttemp, tpress, tentr, tcool, tgmass, txtmp])
+dens, temp, prss, entr, cool, gmss, xtmp = map(get_profs, [tdens, ttemp, tpress, tentr, tcool, tgmass, txtmp])
 plot_rad_profs(r_pp, 1e2, 1e3, dens, temp, prss, entr, cool, gmss, xtmp, plotdir=plotdir)
 
 # Mass computation (under the assumption of hydrostatic equilibrium)
