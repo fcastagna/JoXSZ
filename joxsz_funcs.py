@@ -420,7 +420,7 @@ def get_sz_like(self, output='ll'):
     map_prof = map_out[conv_2d.shape[0]//2, conv_2d.shape[0]//2:]*self.data.sz.convert(np.append(h(0), t_prof))
     g = interp1d(self.data.sz.radius[self.data.sz.sep:], map_prof, 'cubic', fill_value='extrapolate')
     # Log-likelihood calculation
-    chisq = np.sum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/self.data.sz.flux_data[2])**2)
+    chisq = np.nansum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/self.data.sz.flux_data[2])**2)
     log_lik = -chisq/2
     if output == 'll':
         return log_lik
@@ -432,6 +432,18 @@ def get_sz_like(self, output='ll'):
         return map_prof
     else:
         raise RuntimeError('Unrecognised output name (must be "ll", "chisq", "pp" or "bright")')
+
+def mylikeFromProfs(self, predprofs):
+    '''
+    Computes the X-ray log-likelihood for the current parameters
+    Copied from MBProj2, allowing the computation even in case of missing data
+    --------------------------------------------------------------------------
+    predprofs = input profiles
+    '''  
+    likelihood = 0.
+    for band, predprof in zip(self.data.bands, predprofs):
+        likelihood += mb.utils.cashLogLikelihood(band.cts[~np.isnan(band.cts)], predprof[~np.isnan(band.cts)])
+    return likelihood
 
 def getLikelihood(self, vals=None):
     '''
@@ -455,7 +467,7 @@ def getLikelihood(self, vals=None):
     # X-ray fitted profiles
     profs = self.calcProfiles()
     # X-ray log-likelihood
-    like = self.likeFromProfs(profs)
+    like = self.mylikeFromProfs(profs)
     # SZ log-likelihood
     sz_like = self.get_sz_like()
     # prior on parameters 
