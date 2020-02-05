@@ -64,7 +64,7 @@ infgtempl = files_x_dir+'/fg_prof_%04i_%04i.dat' # foreground profile
 inbgtempl = files_x_dir+'/bg_prof_%04i_%04i.dat' # background profile
 
 # name for outputs
-name = 'fit_joxsz'
+name = 'joxsz'
 plotdir = './' # directory for the plots
 savedir = './' # directory for saved files
 
