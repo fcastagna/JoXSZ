@@ -1,4 +1,3 @@
-import sys
 from astropy.io import fits
 import numpy as np
 from scipy import optimize
@@ -190,8 +189,7 @@ def loadBand(infg, inbg, bandE, rmf, arf):
     band.backrates = backd[0:radii.size, 4] # rates in (cts/s/arcmin^2)
     lastmyrad = backd[0:radii.size, 0]
     if (abs(lastmyrad[-1]-radii[-1]) > .001):
-         print('Problem while reading bg file', lastmyrad[-1], radii[-1])
-         sys.exit()
+         raise RuntimeError('Problem while reading bg file', lastmyrad[-1], radii[-1])
     return band
 
 class CmptPressure(mb.Cmpt):
