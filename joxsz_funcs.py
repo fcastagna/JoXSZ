@@ -555,7 +555,7 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     plotdir = directory where to place the plot
     '''
     plt.clf()
-    pdf = PdfPages(plotdir+'fitall.pdf')
+    pdf = PdfPages(plotdir+'fit_on_data.pdf')
     f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(36, 14))
     for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
         eval('ax'+str(i+1)).set_xscale('log')
