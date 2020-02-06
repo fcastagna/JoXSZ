@@ -590,7 +590,7 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     hand_sz, lab_sz = eval('ax'+str(i+2)).get_legend_handles_labels()
     hand_x, lab_x = eval('ax'+str(i+1)).get_legend_handles_labels()
     f.legend([hand_sz[2], hand_sz[0], hand_x[0], hand_sz[1]], [lab_sz[2], lab_sz[0], lab_x[0], lab_sz[1]], 
-             loc='upper center', bbox_to_anchor= (.5, 0.98), ncol=4, borderaxespad=0)
+             loc='upper center', ncol=4, fontsize=labsize)
     pdf.savefig(bbox_inches='tight')
     pdf.close()
 
