@@ -536,7 +536,8 @@ def triangle(mysamples, param_names, labsize=25, titsize=15, plotdir='./'):
     pdf.savefig(bbox_inches='tight')
     pdf.close()
 
-def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, labsize=25, ticksize=20, textsize=30, plotdir='./'):
+def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, labsize=25, ticksize=20, textsize=30, 
+               plotdir='./'):
     '''
     Surface brightness profiles (points with error bars) and best fitting profiles with uncertainties
     -------------------------------------------------------------------------------------------------
@@ -570,24 +571,24 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
         eval('ax'+str(i+1)).set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
         eval('ax'+str(i+1)).tick_params(labelsize=ticksize, length=10, which='major')
         eval('ax'+str(i+1)).tick_params(labelsize=ticksize, length=6, which='minor')
-    ax5.errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig,
-                 yerr=band.cts**0.5/geomareas/band.areascales, color='black', 
-                 fmt='o', markersize=3, label='X-ray data') # for legend reasons
+    eval('ax'+str(i+1)).errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
+                                 yerr=band.cts**0.5/geomareas/band.areascales, color='black', fmt='o', markersize=3, 
+                                 label='X-ray data') # for legend reasons
     med_xsz, lo_xsz, hi_xsz = best_fit_xsz(flatchain, fit, ci)
     sep = data.sz.radius.size//2
     r_am = data.sz.radius[sep:sep+med_xsz.size]/60
-    ax6.errorbar(data.sz.flux_data[0]/60, data.sz.flux_data[1], yerr=data.sz.flux_data[2], fmt='o', markersize=2, color='black', 
-                 label='SZ data')
-    ax6.errorbar(r_am, med_xsz, color='r', label='Best-fit')
-    ax6.fill_between(r_am, lo_xsz, hi_xsz, color='gold', label='95% CI')
-    ax6.set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
-    ax6.set_ylabel('$S_{SZ}$ (mJy·beam$^{-1}$)', fontdict={'fontsize': labsize})
-    ax6.set_xlim(0, 2)
-    ax6.set_ylim(-2.7, .2)
-    ax6.set_xscale('linear')
-    ax6.tick_params(labelsize=ticksize)
-    hand_sz, lab_sz = ax6.get_legend_handles_labels()
-    hand_x, lab_x = ax5.get_legend_handles_labels()
+    eval('ax'+str(i+2)).errorbar(data.sz.flux_data[0]/60, data.sz.flux_data[1], yerr=data.sz.flux_data[2], fmt='o', markersize=2,
+                                 color='black', label='SZ data')
+    eval('ax'+str(i+2)).errorbar(r_am, med_xsz, color='r', label='Best-fit')
+    eval('ax'+str(i+2)).fill_between(r_am, lo_xsz, hi_xsz, color='gold', label='95% CI')
+    eval('ax'+str(i+2)).set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
+    eval('ax'+str(i+2)).set_ylabel('$S_{SZ}$ (mJy·beam$^{-1}$)', fontdict={'fontsize': labsize})
+    eval('ax'+str(i+2)).set_xlim(0, 2)
+    eval('ax'+str(i+2)).set_ylim(-2.7, .2)
+    eval('ax'+str(i+2)).set_xscale('linear')
+    eval('ax'+str(i+2)).tick_params(labelsize=ticksize)
+    hand_sz, lab_sz = eval('ax'+str(i+2)).get_legend_handles_labels()
+    hand_x, lab_x = eval('ax'+str(i+1)).get_legend_handles_labels()
     f.legend([hand_sz[2], hand_sz[0], hand_x[0], hand_sz[1]], [lab_sz[2], lab_sz[0], lab_x[0], lab_sz[1]], 
              loc='upper center', bbox_to_anchor= (.5, 0.98), ncol=4, borderaxespad=0)
     pdf.savefig(bbox_inches='tight')
