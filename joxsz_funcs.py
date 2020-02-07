@@ -698,27 +698,27 @@ def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, tempx,
     plotdir = directory where to place the plot
     '''
     pdf = PdfPages(plotdir+'radial_profiles.pdf')
-    f, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, sharex=True)
+    f, ax = plt.subplots(3, 2, sharex=True)
     ind = np.where((r_kpc > xmin) & (r_kpc < xmax))
     e_ind = np.concatenate(([ind[0][0]-1], ind[0], [ind[0][-1]+1]), axis=0)
-    ax1.set_xscale('log')
-    [i.set_yscale('log') for i in (ax1, ax2, ax3, ax4, ax5, ax6)]
-    ax1.set_xlim(xmin, xmax)
     for (i, j) in enumerate([[dens, 'Density (cm$^{-3}$)'], [temp, 'Temperature (keV)'], [prss, 'Pressure (keV cm$^{-3}$)'], 
                              [entr, 'Entropy (keV cm$^2$)'], [cool/1e9, 'Cooling time (Gyr)'], 
                              [gmss/1e12, 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']]):
-        eval('ax'+str(i+1)).plot(r_kpc[e_ind], j[0][1, e_ind])
-        eval('ax'+str(i+1)).fill_between(r_kpc[e_ind], j[0][0, e_ind], j[0][2, e_ind], color='powderblue')
-        eval('ax'+str(i+1)).set_ylabel(j[1])
+        ax[i//2, i%2].set_xlim(xmin, xmax)
+        ax[i//2, i%2].set_xscale('log')
+        ax[i//2, i%2].set_yscale('log')
+        ax[i//2, i%2].plot(r_kpc[e_ind], j[0][1, e_ind])
+        ax[i//2, i%2].fill_between(r_kpc[e_ind], j[0][0, e_ind], j[0][2, e_ind], color='powderblue')
+        ax[i//2, i%2].set_ylabel(j[1])
     if temp[1][0] != tempx[1][0]:
-        ax2.plot(r_kpc[e_ind], tempx[1][e_ind]) # add X temperature
-        ax2.fill_between(r_kpc[e_ind], tempx[0, e_ind], tempx[2, e_ind], color='lightgreen', alpha=0.25)
-    ax2.set_yscale('linear')
-    ax5.set_xlabel('Radius (kpc)')
-    ax6.set_xlabel('Radius (kpc)')
-    ax2.yaxis.set_label_position('right')
-    ax4.yaxis.set_label_position('right')
-    ax6.yaxis.set_label_position('right')
+        ax[0,1].plot(r_kpc[e_ind], tempx[1][e_ind]) # add X temperature
+        ax[0,1].fill_between(r_kpc[e_ind], tempx[0, e_ind], tempx[2, e_ind], color='lightgreen', alpha=0.25)
+    ax[0,1].set_yscale('linear')
+    ax[2,0].set_xlabel('Radius (kpc)')
+    ax[2,1].set_xlabel('Radius (kpc)')
+    ax[0,1].yaxis.set_label_position('right')
+    ax[1,1].yaxis.set_label_position('right')
+    ax[2,1].yaxis.set_label_position('right')
     pdf.savefig(bbox_inches='tight')
     pdf.close()
 
