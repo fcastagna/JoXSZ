@@ -555,40 +555,40 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     '''
     plt.clf()
     pdf = PdfPages(plotdir+'fit_on_data.pdf')
-    f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(36, 14))
+    npanels = len(data.bands)+1
     for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
-        eval('ax'+str(i+1)).set_xscale('log')
-        eval('ax'+str(i+1)).set_yscale('log')
-        eval('ax'+str(i+1)).axis([0.08, 1.2*xfig.max(), 1, 5e3])
-        eval('ax'+str(i+1)).text(2, 1e3, '[%g-%g] keV' % (band.emin_keV, band.emax_keV), fontdict={'fontsize': textsize})	
-        eval('ax'+str(i+1)).errorbar(xfig, mmed/geomareas/band.areascales, color='r', label='_nolegend_')
-        eval('ax'+str(i+1)).fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold', 
+        ax[i//3, i%3].set_xscale('log')
+        ax[i//3, i%3].set_yscale('log')
+        ax[i//3, i%3].axis([0.08, 1.2*xfig.max(), 1, 5e3])
+        ax[i//3, i%3].text(2, 1e3, '[%g-%g] keV' % (band.emin_keV, band.emax_keV), fontdict={'fontsize': textsize})	
+        ax[i//3, i%3].errorbar(xfig, mmed/geomareas/band.areascales, color='r', label='_nolegend_')
+        ax[i//3, i%3].fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold', 
                                          label='_nolegend_')
-        eval('ax'+str(i+1)).errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
+        ax[i//3, i%3].errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
                                      yerr=band.cts**0.5/geomareas/band.areascales, fmt='o', markersize=3, color='black', 
                                      label='_nolegend_')
-        eval('ax'+str(i+1)).set_ylabel('$S_X$ (counts·arcmin$^{-2}$)', fontdict={'fontsize': labsize})
-        eval('ax'+str(i+1)).set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
-        eval('ax'+str(i+1)).tick_params(labelsize=ticksize, length=10, which='major')
-        eval('ax'+str(i+1)).tick_params(labelsize=ticksize, length=6, which='minor')
-    eval('ax'+str(i+1)).errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
+        ax[i//3, i%3].set_ylabel('$S_X$ (counts·arcmin$^{-2}$)', fontdict={'fontsize': labsize})
+        ax[i//3, i%3].set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
+        ax[i//3, i%3].tick_params(labelsize=ticksize, length=10, which='major')
+        ax[i//3, i%3].tick_params(labelsize=ticksize, length=6, which='minor')
+    [ax[j//3, j%3].axis('off') for j in np.arange(i+2, ax.size)]
+    ax[i//3, i%3].errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
                                  yerr=band.cts**0.5/geomareas/band.areascales, color='black', fmt='o', markersize=3, 
                                  label='X-ray data') # for legend reasons
     med_xsz, lo_xsz, hi_xsz = best_fit_xsz(flatchain, fit, ci)
     sep = data.sz.radius.size//2
     r_am = data.sz.radius[sep:sep+med_xsz.size]/60
-    eval('ax'+str(i+2)).errorbar(data.sz.flux_data[0]/60, data.sz.flux_data[1], yerr=data.sz.flux_data[2], fmt='o', markersize=2,
-                                 color='black', label='SZ data')
-    eval('ax'+str(i+2)).errorbar(r_am, med_xsz, color='r', label='Best-fit')
-    eval('ax'+str(i+2)).fill_between(r_am, lo_xsz, hi_xsz, color='gold', label='95% CI')
-    eval('ax'+str(i+2)).set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
-    eval('ax'+str(i+2)).set_ylabel('$S_{SZ}$ (mJy·beam$^{-1}$)', fontdict={'fontsize': labsize})
-    eval('ax'+str(i+2)).set_xlim(0, 2)
-    eval('ax'+str(i+2)).set_ylim(-2.7, .2)
-    eval('ax'+str(i+2)).set_xscale('linear')
-    eval('ax'+str(i+2)).tick_params(labelsize=ticksize)
-    hand_sz, lab_sz = eval('ax'+str(i+2)).get_legend_handles_labels()
-    hand_x, lab_x = eval('ax'+str(i+1)).get_legend_handles_labels()
+    ax[(i+1)//3, (i+1)%3].errorbar(data.sz.flux_data[0]/60, data.sz.flux_data[1], yerr=data.sz.flux_data[2], fmt='o', 
+                                   markersize=2, color='black', label='SZ data')
+    ax[(i+1)//3, (i+1)%3].errorbar(r_am, med_xsz, color='r', label='Best-fit')
+    ax[(i+1)//3, (i+1)%3].fill_between(r_am, lo_xsz, hi_xsz, color='gold', label='95% CI')
+    ax[(i+1)//3, (i+1)%3].set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
+    ax[(i+1)//3, (i+1)%3].set_ylabel('$S_{SZ}$ (mJy·beam$^{-1}$)', fontdict={'fontsize': labsize})
+    ax[(i+1)//3, (i+1)%3].set_xlim(0, np.ceil(data.sz.flux_data[0][-1]/60))
+    ax[(i+1)//3, (i+1)%3].set_xscale('linear')
+    ax[(i+1)//3, (i+1)%3].tick_params(labelsize=ticksize)
+    hand_sz, lab_sz = ax[(i+1)//3, (i+1)%3].get_legend_handles_labels()
+    hand_x, lab_x = ax[i//3, i%3].get_legend_handles_labels()
     f.legend([hand_sz[2], hand_sz[0], hand_x[0], hand_sz[1]], [lab_sz[2], lab_sz[0], lab_x[0], lab_sz[1]], 
              loc='upper center', ncol=4, fontsize=labsize)
     pdf.savefig(bbox_inches='tight')
