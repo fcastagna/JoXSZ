@@ -559,8 +559,10 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
         ax[i//3, i%3].set_xscale('log')
         ax[i//3, i%3].set_yscale('log')
-        ax[i//3, i%3].axis([0.08, 1.2*xfig.max(), 1, 5e3])
-        ax[i//3, i%3].text(2, 1e3, '[%g-%g] keV' % (band.emin_keV, band.emax_keV), fontdict={'fontsize': textsize})	
+        ax[i//3, i%3].axis([0.9*xfig.min(), 1.2*xfig.max(), 1, 
+                            10**np.ceil(np.log10(np.max([np.max(band.cts/geomareas/band.areascales) for band in data.bands])))])
+        ax[i//3, i%3].text(xfig[1]-errxfig[1], 5, '[%g-%g] keV' % (band.emin_keV, band.emax_keV), 
+                           fontdict={'fontsize': textsize})	
         ax[i//3, i%3].errorbar(xfig, mmed/geomareas/band.areascales, color='r', label='_nolegend_')
         ax[i//3, i%3].fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold', 
                                          label='_nolegend_')
