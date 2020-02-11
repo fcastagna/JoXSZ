@@ -701,9 +701,10 @@ def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, tempx,
     f, ax = plt.subplots(3, 2, sharex=True)
     ind = np.where((r_kpc > xmin) & (r_kpc < xmax))
     e_ind = np.concatenate(([ind[0][0]-1], ind[0], [ind[0][-1]+1]), axis=0)
-    for (i, j) in enumerate([[dens, 'Density (cm$^{-3}$)'], [temp, 'Temperature (keV)'], [prss, 'Pressure (keV cm$^{-3}$)'], 
-                             [entr, 'Entropy (keV cm$^2$)'], [cool/1e9, 'Cooling time (Gyr)'], 
-                             [gmss/1e12, 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']]):
+    prop = [dens, temp, prss, entr, cool, gmss]
+    labs = ['Density (cm$^{-3}$)', 'Temperature (keV)', 'Pressure (keV cm$^{-3}$)', 'Entropy (keV cm$^2$)', 'Cooling time (Gyr)',
+            'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']
+    for (i, j) in enumerate(zip(prop, labs)):
         ax[i//2, i%2].set_xlim(xmin, xmax)
         ax[i//2, i%2].set_xscale('log')
         ax[i//2, i%2].set_yscale('log')
