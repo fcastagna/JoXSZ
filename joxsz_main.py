@@ -43,7 +43,7 @@ convert_filename = '%s/Jy_per_beam_to_Compton.dat' %files_sz_dir
 # Beam and transfer function. From raw data or Gaussian approximation?
 beam_approx = False
 tf_approx = False
-fwhm_beam = None # fwhm of the normal distribution for the beam approximation
+fwhm_approx = None # fwhm of the normal distribution for the beam approximation
 loc, scale, c = None, None, None # location, scale and normalization parameters of the normal cdf for the tf approximation
 
 #################
@@ -90,7 +90,7 @@ def main():
     flux_data = read_xy_err(flux_filename, ncol=3) # radius (arcsec), flux density, statistical error
     maxr_data = flux_data[0][-1] # highest radius in the data
     beam_2d, fwhm_beam = mybeam(mystep, maxr_data, approx=beam_approx, filename=beam_filename, normalize=True, 
-                                fwhm_beam=fwhm_beam)
+                                fwhm_beam=fwhm_approx)
     mymaxr = (maxr_data+3*fwhm_beam)//mystep*mystep # max radius needed (arcsec)
     radius = np.arange(0, mymaxr+mystep, mystep) # array of radii in arcsec
     radius = np.append(-radius[:0:-1], radius) # from positive to entire axis
