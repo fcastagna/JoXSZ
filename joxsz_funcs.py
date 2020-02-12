@@ -698,6 +698,7 @@ def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, tempx,
     plotdir = directory where to place the plot
     '''
     pdf = PdfPages(plotdir+'radial_profiles.pdf')
+    plt.clf()
     f, ax = plt.subplots(3, 2, sharex=True)
     ind = np.where((r_kpc > xmin) & (r_kpc < xmax))
     e_ind = np.concatenate(([ind[0][0]-1], ind[0], [ind[0][-1]+1]), axis=0)
@@ -722,6 +723,7 @@ def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, tempx,
     ax[2,1].yaxis.set_label_position('right')
     pdf.savefig(bbox_inches='tight')
     pdf.close()
+    plt.close()
 
 def mass_r_delta(r_kpc, cosmo, delta=500):
     '''
