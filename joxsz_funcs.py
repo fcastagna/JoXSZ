@@ -556,6 +556,7 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     plt.clf()
     pdf = PdfPages(plotdir+'fit_on_data.pdf')
     npanels = len(data.bands)+1
+    f, ax = plt.subplots(int(np.ceil(npanels/3)), 3, figsize=(18*np.ceil(npanels/3), 14))
     for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
         ax[i//3, i%3].set_xscale('log')
         ax[i//3, i%3].set_yscale('log')
