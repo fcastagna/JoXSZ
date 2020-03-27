@@ -595,24 +595,21 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
         ax[i//3, i%3].text(0.1, 0.1, '[%g-%g] keV' % (band.emin_keV, band.emax_keV), horizontalalignment='left', 
                            verticalalignment='bottom', transform=ax[i//3, i%3].transAxes, fontdict={'fontsize': textsize})	
         ax[i//3, i%3].errorbar(xfig, mmed/geomareas/band.areascales, color='r', label='_nolegend_')
-        ax[i//3, i%3].fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold', 
-                                         label='_nolegend_')
-        ax[i//3, i%3].errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
-                                     yerr=band.cts**0.5/geomareas/band.areascales, fmt='o', markersize=3, color='black', 
-                                     label='_nolegend_')
+        ax[i//3, i%3].fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold', label='_nolegend_')
+        ax[i//3, i%3].errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, yerr=band.cts**0.5/geomareas/band.areascales, 
+                               fmt='o', markersize=3, color='black', label='_nolegend_')
         ax[i//3, i%3].set_ylabel('$S_X$ (counts·arcmin$^{-2}$)', fontdict={'fontsize': labsize})
         ax[i//3, i%3].set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
         ax[i//3, i%3].tick_params(labelsize=ticksize, length=10, which='major')
         ax[i//3, i%3].tick_params(labelsize=ticksize, length=6, which='minor')
     [ax[j//3, j%3].axis('off') for j in np.arange(i+2, ax.size)]
-    ax[i//3, i%3].errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, 
-                                 yerr=band.cts**0.5/geomareas/band.areascales, color='black', fmt='o', markersize=3, 
-                                 label='X-ray data') # for legend reasons
+    ax[i//3, i%3].errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, yerr=band.cts**0.5/geomareas/band.areascales, 
+                           color='black', fmt='o', markersize=3, label='X-ray data')
     med_xsz, lo_xsz, hi_xsz = best_fit_xsz(flatchain, fit, ci)
     sep = data.sz.radius.size//2
     r_am = data.sz.radius[sep:sep+med_xsz.size]/60
-    ax[(i+1)//3, (i+1)%3].errorbar(data.sz.flux_data[0]/60, data.sz.flux_data[1], yerr=data.sz.flux_data[2], fmt='o', markersize=2,
-                                 color='black', label='SZ data')
+    ax[(i+1)//3, (i+1)%3].errorbar(data.sz.flux_data[0]/60, data.sz.flux_data[1], yerr=data.sz.flux_data[2], fmt='o', markersize=2, 
+                                   color='black', label='SZ data')
     ax[(i+1)//3, (i+1)%3].errorbar(r_am, med_xsz, color='r', label='Best-fit')
     ax[(i+1)//3, (i+1)%3].fill_between(r_am, lo_xsz, hi_xsz, color='gold', label='95% CI')
     ax[(i+1)//3, (i+1)%3].set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
