@@ -583,6 +583,21 @@ def triangle(mysamples, param_names, labsize=25, titsize=15, plotdir='./'):
     pdf.close()
 
 def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, labsize=25, ticksize=20, textsize=30, plotdir='./'):
+    '''
+    Surface brightness profiles (points with error bars) and best fitting profiles with uncertainties
+    -------------------------------------------------------------------------------------------------
+    data = Data object containing information on the X-ray bands and SZ data
+    lo, med, hi = best (median) fitting profiles with uncertainties
+    geomareas = annuli areas for X-ray data
+    xfig, errxfig = radii of X-ray data and related errors
+    flatchain = array of sampled values in the chain
+    fit = Fit object
+    ci = uncertainty level of the interval
+    labsize = label font size
+    ticksize = ticks font size
+    textsize = text font size
+    plotdir = directory where to place the plot
+    '''
     plt.clf()
     pdf = PdfPages(plotdir+'fit_on_data.pdf')
     npanels = len(data.bands)+1
