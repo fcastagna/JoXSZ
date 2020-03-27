@@ -11,7 +11,7 @@ import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
                          CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like,
-                         mylikeFromProfs, getLikelihood, traceplot, triangle, fitwithmod, my_rad_profs, plot_rad_profs, 
+                         mylikeFromProfs, getLikelihood, mcmc_run, traceplot, triangle, fitwithmod, my_rad_profs, plot_rad_profs, 
                          mass_r_delta, m_r_delta, mass_plot)
 from types import MethodType
 
@@ -73,8 +73,8 @@ savedir = './' # directory for saved files
 ci = 95
 
 # MCMC parameters
-nburn = int(200e3) # number of burn-in iteration
-nlength = int(200e3) # number of chain iterations (after burn-in)
+nburn = 2000 # number of burn-in iteration
+nlength = 2000 # number of chain iterations (after burn-in)
 nwalkers = 30 # number of random walkers
 nthreads = 8 # number of processes/threads
 nthin = 50
@@ -185,14 +185,6 @@ def main():
     mb.Fit.get_sz_like = MethodType(get_sz_like, fit)
     mb.Fit.getLikelihood = MethodType(getLikelihood, fit)
     mb.Fit.mylikeFromProfs = MethodType(mylikeFromProfs, fit)
-    
-# =============================================================================
-#     fit.updateThawed([1.5299913e-01, 1.2611315e-01, 6.0648668e-01, 9.3698680e-01,
-#                       5.5450573e+00, 2.9098995e+00, 9.6631110e-01, 1.2455332e+00,
-#                       -7.2743431e-02, 2.0002098e+00, 2.3959684e+00,
-#                       2.8541595e-02, 2.0774472e+02])
-# =============================================================================
-
     #
     fit.doFitting()
     # save best fit
@@ -202,11 +194,8 @@ def main():
     # construct MCMC object and do burn in
     mcmc = mb.MCMC(fit, walkers=nwalkers, processes=nthreads)
     chainfilename = '%s%s_chain.hdf5' % (savedir, name)
-#    mcmc.burnIn(nburn)
-    from joxsz_funcs import mcmc_run
-    mcmc_run(mcmc, nburn, nsteps=nlength, nthin=nthin)
     # run mcmc proper and save the chain
-#    mcmc.run(nlength)
+    mcmc_run(mcmc, nburn, nsteps=nlength, nthin=nthin)
     mcmc.save(chainfilename)
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
     print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
