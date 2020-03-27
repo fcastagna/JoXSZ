@@ -73,8 +73,8 @@ savedir = './' # directory for saved files
 ci = 95
 
 # MCMC parameters
-nburn = 200e3 # number of burn-in iteration
-nlength = 200e3 # number of chain iterations (after burn-in)
+nburn = int(200e3) # number of burn-in iteration
+nlength = int(200e3) # number of chain iterations (after burn-in)
 nwalkers = 30 # number of random walkers
 nthreads = 8 # number of processes/threads
 nthin = 50
