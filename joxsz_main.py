@@ -11,7 +11,7 @@ import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
                          CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like,
-                         mylikeFromProfs, getLikelihood, traceplot, triangle, fitwithmod, my_rad_profs, plot_rad_profs, 
+                         mylikeFromProfs, getLikelihood, mcmc_run, traceplot, triangle, fitwithmod, my_rad_profs, plot_rad_profs, 
                          mass_r_delta, m_r_delta, mass_plot)
 from types import MethodType
 
@@ -37,20 +37,21 @@ cosmology.WV = 0.6842 # vacuum density
 files_sz_dir = './data/SZ' # SZ data directory
 beam_filename = '%s/Beam150GHz.fits' %files_sz_dir
 tf_filename = '%s/TransferFunction150GHz_CLJ1227.fits' %files_sz_dir
-flux_filename = '%s/flux_density.dat' %files_sz_dir 
+flux_filename = '%s/press_data_cl1226_flagsource_Xraycent.dat' %files_sz_dir 
 convert_filename = '%s/Jy_per_beam_to_Compton.dat' %files_sz_dir
 
 # Beam and transfer function. From raw data or Gaussian approximation?
 beam_approx = False
 tf_approx = False
-fwhm_approx = None # fwhm of the normal distribution for the beam approximation
+fwhm_beam = None # fwhm of the normal distribution for the beam approximation
 loc, scale, c = None, None, None # location, scale and normalization parameters of the normal cdf for the tf approximation
 
 #################
 ### X-ray
 
 # energy bands in eV
-bandEs = [[700,1000], [1000,2000], [2000,3000], [3000,5000], [5000,7000]]
+bandEs = [[700, 1000], [1000, 1300], [1300, 1600], [1600, 2000], [2000, 2700], 
+	  [2700, 3400], [3400, 3800], [3800, 4300], [4300, 5000], [5000, 7000]]
 
 # Cluster parameters
 NH_1022pcm2 = .0183 # absorbing column density in 10^22 cm^(-2) 
@@ -60,8 +61,8 @@ Z_solar = 0.3 # assumed metallicity or, if free, any value in the valid range
 files_x_dir = './data/X' # X-ray data directory
 rmf = '%s/source.rmf' %files_x_dir
 arf = '%s/source.arf' %files_x_dir
-infgtempl = files_x_dir+'/fg_prof_%04i_%04i.dat' # foreground profile
-inbgtempl = files_x_dir+'/bg_prof_%04i_%04i.dat' # background profile
+infgtempl = files_x_dir+'/fg_profnew_%04i_%04i.dat' # foreground profile
+inbgtempl = files_x_dir+'/bg_profnew_%04i_%04i.dat' # background profile
 
 # name for outputs
 name = 'joxsz'
@@ -76,6 +77,7 @@ nburn = 2000 # number of burn-in iteration
 nlength = 2000 # number of chain iterations (after burn-in)
 nwalkers = 30 # number of random walkers
 nthreads = 8 # number of processes/threads
+nthin = 50
 
 # whether to exclude unphysical masses from fit
 exclude_unphy_mass = True
@@ -89,9 +91,9 @@ def main():
     kpc_as = cosmology.kpc_per_arcsec # number of kpc per arcsec
     flux_data = read_xy_err(flux_filename, ncol=3) # radius (arcsec), flux density, statistical error
     maxr_data = flux_data[0][-1] # highest radius in the data
-    beam_2d, fwhm_beam = mybeam(mystep, maxr_data, approx=beam_approx, filename=beam_filename, normalize=True, 
-                                fwhm_beam=fwhm_approx)
-    mymaxr = (maxr_data+3*fwhm_beam)//mystep*mystep # max radius needed (arcsec)
+    beam_2d, fwhm = mybeam(mystep, maxr_data, approx=beam_approx, filename=beam_filename, normalize=True, 
+                                fwhm_beam=fwhm_beam)
+    mymaxr = (maxr_data+3*fwhm)//mystep*mystep # max radius needed (arcsec)
     radius = np.arange(0, mymaxr+mystep, mystep) # array of radii in arcsec
     radius = np.append(-radius[:0:-1], radius) # from positive to entire axis
     sep = radius.size//2 # index of radius 0
@@ -145,6 +147,7 @@ def main():
 
     # add parameter which allows variation of background with a Gaussian prior with sigma = 0.1
     pars['backscale'] = mb.ParamGaussian(1., prior_mu=1, prior_sigma=0.1)
+    pars['calibration'] = mb.ParamGaussian(1., prior_mu=1, prior_sigma=0.07/np.log(10))
 
     # stop radii going beyond edge of data
     pars['log(r_c)'].maxval = annuli.edges_logkpc[-2]
@@ -157,6 +160,11 @@ def main():
     pars[r'\epsilon'].maxval = 10
     pars[r'\alpha'].val = 0.
     pars[r'\alpha'].frozen = True
+
+    pars[r'\epsilon'].val = 2.
+#    pars[r'\epsilon'].frozen = True
+    pars['Z'].val = .3
+    pars['Z'].frozen = True
 
     # constraints on pressure parameters
     #pars['a'].frozen = True
@@ -177,7 +185,6 @@ def main():
     mb.Fit.get_sz_like = MethodType(get_sz_like, fit)
     mb.Fit.getLikelihood = MethodType(getLikelihood, fit)
     mb.Fit.mylikeFromProfs = MethodType(mylikeFromProfs, fit)
-
     #
     fit.doFitting()
     # save best fit
@@ -187,12 +194,11 @@ def main():
     # construct MCMC object and do burn in
     mcmc = mb.MCMC(fit, walkers=nwalkers, processes=nthreads)
     chainfilename = '%s%s_chain.hdf5' % (savedir, name)
-    mcmc.burnIn(nburn)
-
     # run mcmc proper and save the chain
-    mcmc.run(nlength)
+    mcmc_run(mcmc, nburn, nsteps=nlength, nthin=nthin)
     mcmc.save(chainfilename)
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
+    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
     mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F')
     flatchain = mcmc.sampler.flatchain[::100] # reduced chain (one in a hundred values)
     mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
@@ -207,7 +213,7 @@ def main():
     geomareas = np.pi*(edges[1:]**2-edges[:-1]**2)
 
     # Bayesian diagnostics
-    traceplot(mysamples, mcmc_thawed, nsteps=nlength, nw=nwalkers, plotdir=plotdir)
+    traceplot(mysamples, mcmc_thawed, nsteps=nlength/nthin, nw=nwalkers, plotdir=plotdir)
     triangle(mysamples, mcmc_thawed, plotdir=plotdir)
 
     # Best fitting profiles on SZ and X-ray surface brightness
@@ -246,7 +252,7 @@ def main():
     lr_d, mr_d, hr_d = np.percentile(r_delta, [50-ci/2., 50, 50+ci/2.], axis=0)
     lm_d, mm_d, hm_d = np.percentile(m_delta, [50-ci/2., 50, 50+ci/2.], axis=0)
     # total mass profile
-    mass_plot(r_pp, mmss, lmss, hmss, mr_d, lr_d, hr_d, mm_d, lm_d, hm_d, m_vd, plotdir=plotdir)
+    mass_plot(r_pp, mmss, lmss, hmss, mr_d, lr_d, hr_d, mm_d, lm_d, hm_d, m_vd, xmin=100, xmax=1500, plotdir=plotdir)
 
 if __name__ == '__main__':
     main()
