@@ -590,8 +590,10 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
         ax[i//3, i%3].set_xscale('log')
         ax[i//3, i%3].set_yscale('log')
-        ax[i//3, i%3].axis([0.9*xfig.min(), 1.2*xfig.max(), 1, 10**np.ceil(np.log10(np.max([np.max(band.cts/geomareas/band.areascales) for band in data.bands])))])
-        ax[i//3, i%3].text(xfig[1]-errxfig[1], 5, '[%g-%g] keV' % (band.emin_keV, band.emax_keV), fontdict={'fontsize': textsize})	
+        ax[i//3, i%3].axis([0.9*xfig.min(), 1.2*xfig.max(), 
+                            1, 10**np.ceil(np.log10(np.max([np.max(band.cts/geomareas/band.areascales) for band in data.bands])))])
+        ax[i//3, i%3].text(0.1, 0.1, '[%g-%g] keV' % (band.emin_keV, band.emax_keV), horizontalalignment='left', 
+                           verticalalignment='bottom', transform=ax[i//3, i%3].transAxes, fontdict={'fontsize': textsize})	
         ax[i//3, i%3].errorbar(xfig, mmed/geomareas/band.areascales, color='r', label='_nolegend_')
         ax[i//3, i%3].fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold', 
                                          label='_nolegend_')
@@ -617,12 +619,11 @@ def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, 
     ax[(i+1)//3, (i+1)%3].set_ylabel('$S_{SZ}$ (mJy·beam$^{-1}$)', fontdict={'fontsize': labsize})
     ax[(i+1)//3, (i+1)%3].set_xscale('linear')
     ax[(i+1)//3, (i+1)%3].set_xlim(0, np.ceil(data.sz.flux_data[0][-1]/60))
-#    ax[(i+1)//3, (i+1)%3].set_ylim(-2.7, .2)
     ax[(i+1)//3, (i+1)%3].tick_params(labelsize=ticksize)
     hand_sz, lab_sz = ax[(i+1)//3, (i+1)%3].get_legend_handles_labels()
     hand_x, lab_x = ax[i//3, i%3].get_legend_handles_labels()
     f.legend([hand_sz[2], hand_sz[0], hand_x[0], hand_sz[1]], [lab_sz[2], lab_sz[0], lab_x[0], lab_sz[1]], 
-             loc='best', ncol=4, fontsize=labsize)
+             loc='lower center', ncol=4, fontsize=labsize, bbox_to_anchor=(.5, .99))
     plt.tight_layout()
     pdf.savefig(bbox_inches='tight')
     pdf.close()
