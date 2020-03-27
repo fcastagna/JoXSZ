@@ -198,7 +198,7 @@ def main():
     mcmc_run(mcmc, nburn, nsteps=nlength, nthin=nthin)
     mcmc.save(chainfilename)
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
-    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
+#    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
     mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F')
     flatchain = mcmc.sampler.flatchain[::100] # reduced chain (one in a hundred values)
     mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
