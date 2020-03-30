@@ -2,7 +2,7 @@
 # Joint X-ray and SZ fitting code for galaxy clusters in Python
 *Castagna Fabio, Andreon Stefano*
 
-`JoXSZ` is a Python program that allows to jointly fit the pressure profile of galaxy clusters from both SZ and X-ray data using MCMC.
+`JoXSZ` is a Python program that allows to jointly fit the thermodynamic profiles of galaxy clusters from both SZ and X-ray data using MCMC.
 `JoXSZ` is the enhanced version of [`preprofit`](https://github.com/fcastagna/preprofit), which only fits SZ data. 
 
 As an example, we show the application of `JoXSZ` on the high-redshift cluster of galaxies CL J1226.9+3332 (z = 0.89).
