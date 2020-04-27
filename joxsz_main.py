@@ -147,7 +147,7 @@ def main():
 
     # add parameter which allows variation of background with a Gaussian prior with sigma = 0.1
     pars['backscale'] = mb.ParamGaussian(1., prior_mu=1, prior_sigma=0.1)
-    pars['calibration'] = mb.ParamGaussian(1., prior_mu=1, prior_sigma=0.07/np.log(10))
+    pars['calibration'] = mb.ParamGaussian(1., prior_mu=1, prior_sigma=0.07)
 
     # stop radii going beyond edge of data
     pars['log(r_c)'].maxval = annuli.edges_logkpc[-2]
