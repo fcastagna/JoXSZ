@@ -3,8 +3,6 @@
 # note xspec will run for a while on first invocation to create grids,
 # so don't worry if it hangs on Fitting
 
-#from __future__ import division, print_function
-
 import six.moves.cPickle as pickle
 import numpy as np
 import mbproj2 as mb
@@ -21,7 +19,7 @@ from types import MethodType
 mystep = 2. # constant sampling step in arcsec for SZ analysis (values higher than (1/3)*FWHM of the SZ beam are not recommended)
 m_e = 0.5109989*1e3 # electron rest mass (keV)
 sigma_T = 6.6524587158*1e-25 # Thomson cross section (cm^2)
-R_b = 5000 # Radial cluster extent (kpc), serves as upper bound for Compton y parameter integration
+R_b = 5000. # Radial cluster extent (kpc), serves as upper bound for Compton y parameter integration
 
 # Cluster cosmology
 redshift = 0.888
@@ -54,7 +52,7 @@ bandEs = [[700, 1000], [1000, 1300], [1300, 1600], [1600, 2000], [2000, 2700],
 	  [2700, 3400], [3400, 3800], [3800, 4300], [4300, 5000], [5000, 7000]]
 
 # Cluster parameters
-NH_1022pcm2 = .0183 # absorbing column density in 10^22 cm^(-2) 
+NH_1022pcm2 = 0.0183 # absorbing column density in 10^22 cm^(-2) 
 Z_solar = 0.3 # assumed metallicity or, if free, any value in the valid range
 
 # Chandra data
@@ -91,8 +89,7 @@ def main():
     kpc_as = cosmology.kpc_per_arcsec # number of kpc per arcsec
     flux_data = read_xy_err(flux_filename, ncol=3) # radius (arcsec), flux density, statistical error
     maxr_data = flux_data[0][-1] # highest radius in the data
-    beam_2d, fwhm = mybeam(mystep, maxr_data, approx=beam_approx, filename=beam_filename, normalize=True, 
-                                fwhm_beam=fwhm_beam)
+    beam_2d, fwhm = mybeam(mystep, maxr_data, approx=beam_approx, filename=beam_filename, normalize=True, fwhm_beam=fwhm_beam)
     mymaxr = (maxr_data+3*fwhm)//mystep*mystep # max radius needed (arcsec)
     radius = np.arange(0, mymaxr+mystep, mystep) # array of radii in arcsec
     radius = np.append(-radius[:0:-1], radius) # from positive to entire axis
@@ -119,7 +116,7 @@ def main():
 
     # Data object represents annuli and bands
     data = mb.Data(bands, annuli)
-    data.sz = sz_data
+    data.sz = sz_data # add SZ data
 
     # flat metallicity profile
     Z_cmpt = mb.CmptFlat('Z', annuli, defval=Z_solar, minval=0, maxval=1)
@@ -161,14 +158,7 @@ def main():
     pars[r'\alpha'].val = 0.
     pars[r'\alpha'].frozen = True
 
-    pars[r'\epsilon'].val = 2.
-#    pars[r'\epsilon'].frozen = True
-    pars['Z'].val = .3
-    pars['Z'].frozen = True
-
     # constraints on pressure parameters
-    #pars['a'].frozen = True
-    #pars['b'].frozen = True
     pars['c'].frozen = True
 
     # parameter regulating the ratio between X-ray temperature and SZ temperature
