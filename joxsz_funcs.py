@@ -146,7 +146,7 @@ def filt_image(wn_as, tf, side, step):
     -------------------------------
     RETURN: the (side x side) image
     '''
-    f = interp1d(wn_as, tf, bounds_error=False, fill_value=tuple([tf[0], tf[-1]])) # tf interpolation
+    f = interp1d(wn_as, tf, 'cubic', bounds_error=False, fill_value=tuple([tf[0], tf[-1]])) # tf interpolation
     kmax = 1/step
     karr = dist(side)/side
     karr /= karr.max()
@@ -264,7 +264,7 @@ class CmptUPPTemperature(mb.Cmpt):
         Default parameter T_ratio = T_X / T_SZ
         --------------------------------------
         '''
-        pars = {'log(T_{ratio})': mb.Param(0, minval=-1, maxval=1)}
+        pars = {'log(T_X/T_{SZ})': mb.Param(0, minval=-1, maxval=1)}
         return pars
     
     def temp_fun(self, pars, r_kpc, getT_SZ=False):
@@ -286,7 +286,6 @@ class CmptUPPTemperature(mb.Cmpt):
         
     def computeProf(self, pars):
         return self.temp_fun(pars, self.annuli.midpt_kpc)
-
 
 class CmptMyMass(mb.Cmpt):
     '''
@@ -793,7 +792,7 @@ def mass_r_delta(r_kpc, cosmo, delta=500):
     mass_r_delta = 4/3*np.pi*rho_c*delta*r_cm**3/solar_mass_g
     return mass_r_delta
 
-def m_r_delta(pars, fit, r_kpc, cosmo, delta=500):
+def m_r_delta(pars, fit, r_kpc, cosmo, delta=500., start_opt=700.):
     '''
     Compute the overdensity radius and the overdensity mass 
     (overdensity radius = radius within which the average density is Δ times the critical density at the cluster's redshift)
@@ -804,12 +803,13 @@ def m_r_delta(pars, fit, r_kpc, cosmo, delta=500):
     r_kpc = radius (kpc)
     cosmo = Cosmology object
     delta = overdensity (Δ)
+    start_opt = starting value for optimization (kpc)
     ---------------------------------------------------------------------
     RETURN: cumulative mass profile, overdensity radius, overdensity mass
     '''
     fit.updateThawed(pars)
     m_prof = fit.mass_cmpt.mass_fun(fit.pars, r_kpc)
-    r_delta = optimize.newton(lambda r: fit.mass_cmpt.mass_fun(fit.pars, r)-mass_r_delta(r, cosmo, delta), 700)
+    r_delta = optimize.newton(lambda r: fit.mass_cmpt.mass_fun(fit.pars, r)-mass_r_delta(r, cosmo, delta), start_opt)
     m_delta = fit.mass_cmpt.mass_fun(fit.pars, r_delta)
     return m_prof, r_delta, m_delta
 
