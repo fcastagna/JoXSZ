@@ -172,7 +172,7 @@ def main():
     pars['c'].frozen = True
 
     # parameter regulating the ratio between X-ray temperature and SZ temperature
-    pars['log(T_{ratio})'].frozen = False
+    pars['log(T_X/T_{SZ})'].frozen = False
 
     # do fitting of data with model
     fit = mb.Fit(pars, model, data)
@@ -200,7 +200,6 @@ def main():
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
     mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F')
-    flatchain = mcmc.sampler.flatchain[::100] # reduced chain (one in a hundred values)
     mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
 
     #################
@@ -217,6 +216,7 @@ def main():
     triangle(mysamples, mcmc_thawed, plotdir=plotdir)
 
     # Best fitting profiles on SZ and X-ray surface brightness
+    flatchain = mcmc.sampler.flatchain[::100] # reduced chain (one in a hundred values)
     profs = []
     for pars in flatchain: #[-1000:]:
         fit.updateThawed(pars)
@@ -244,7 +244,7 @@ def main():
     # fitted mass profiles, overdensity radii and overdensity masses
     mass_prof, r_delta, m_delta = [[], [], []]
     for pars in flatchain:
-        res = m_r_delta(pars, fit, r_pp, cosmology)
+        res = m_r_delta(pars, fit, r_pp, cosmology, delta=500)
         mass_prof.append(res[0])
         r_delta.append(res[1])
         m_delta.append(res[2])
