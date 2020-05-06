@@ -9,8 +9,9 @@ import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
                          CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like,
-                         mylikeFromProfs, getLikelihood, mcmc_run, traceplot, triangle, fitwithmod, my_rad_profs, plot_rad_profs, 
-                         mass_r_delta, m_r_delta, mass_plot)
+                         mylikeFromProfs, getLikelihood, mcmc_run)
+from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_profs, mass_plot, 
+			 frac_gas_prof, frac_gas_plot)
 from types import MethodType
 
 #################
@@ -72,10 +73,11 @@ ci = 95
 
 # MCMC parameters
 nburn = 2000 # number of burn-in iteration
-nlength = 2000 # number of chain iterations (after burn-in)
+nlength = 5000 # number of chain iterations (after burn-in)
 nwalkers = 30 # number of random walkers
 nthreads = 8 # number of processes/threads
-nthin = 50
+nthin = 5 # thinning 
+seed = 123 # random seed
 
 # whether to exclude unphysical masses from fit
 exclude_unphy_mass = True
@@ -189,60 +191,32 @@ def main():
     mcmc.save(chainfilename)
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
-    mysamples = mcmc.sampler.chain.reshape(-1, mcmc.sampler.chain.shape[2], order='F')
+    mysamples = mcmc.sampler.chain # (nwalkers x niter x nparams)
+    flatchain = mysamples.reshape(-1, mysamples.shape[2], order='F') # ((nwalkers x niter) x nparams)
     mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
 
     #################
     ### Plots
 
-    # Graphical settings
-    edges = annuli.edges_arcmin
-    xfig = 0.5*(edges[1:]+edges[:-1])
-    errxfig = 0.5*(edges[1:]-edges[:-1])
-    geomareas = np.pi*(edges[1:]**2-edges[:-1]**2)
-
     # Bayesian diagnostics
-    traceplot(mysamples, mcmc_thawed, nsteps=nlength/nthin, nw=nwalkers, plotdir=plotdir)
-    triangle(mysamples, mcmc_thawed, plotdir=plotdir)
+    traceplot(mysamples, mcmc_thawed, seed=None, plotdir=plotdir)
+    triangle(flatchain, mcmc_thawed, plotdir=plotdir)
 
     # Best fitting profiles on SZ and X-ray surface brightness
-    flatchain = mcmc.sampler.flatchain[::100] # reduced chain (one in a hundred values)
-    profs = []
-    for pars in flatchain: #[-1000:]:
-        fit.updateThawed(pars)
-        profs.append(fit.calcProfiles())
-    lxsz, mxsz, hxsz = np.percentile(profs, [50-ci/2., 50, 50+ci/2.], axis=0)
-    fitwithmod(data, lxsz, mxsz, hxsz, geomareas, xfig, errxfig, flatchain, fit, ci, plotdir=plotdir)
+    perc_x, perc_sz = best_fit_prof(mysamples, fit, num='all', seed=seed, ci=ci)
+    fitwithmod(data, perc_x, perc_sz, ci=ci, plotdir=plotdir)
 
     # Radial profiles (density, temperature(s), pressure, entropy, cooling time, gas mass)
-    tdens = np.zeros((flatchain.shape[0], r_pp.size))
-    ttemp = tdens.copy()
-    tpress = tdens.copy() 
-    tentr = tdens.copy()
-    tcool = tdens.copy()
-    tgmass = tdens.copy()
-    txtmp = tdens.copy()
-    for j in range(flatchain.shape[0]):
-        tdens[j], ttemp[j], tpress[j], tentr[j], tcool[j], tgmass[j], txtmp[j] = my_rad_profs(flatchain[j,:], r_pp, fit)
-    get_profs = lambda x: np.percentile(x, [50-ci/2., 50, 50+ci/2.], axis=0)
-    dens, temp, prss, entr, cool, gmss, xtmp = map(get_profs, [tdens, ttemp, tpress, tentr, tcool, tgmass, txtmp])
-    plot_rad_profs(r_pp, 1e2, 1e3, dens, temp, prss, entr, cool, gmss, xtmp, plotdir=plotdir)
+    dens, temp, prss, entr, cool, gmss, xtmp = comp_rad_profs(mysamples, fit, num='all', seed=seed, ci=ci)
+    plot_rad_profs(r_pp, dens, temp, prss, entr, cool, gmss, xtmp, xmin=100., xmax=1000., plotdir=plotdir)
 
-    # Mass computation (under the assumption of hydrostatic equilibrium)
-    # mass profile with overdensity=500
-    m_vd = mass_r_delta(r_pp, cosmology, delta=500)
-    # fitted mass profiles, overdensity radii and overdensity masses
-    mass_prof, r_delta, m_delta = [[], [], []]
-    for pars in flatchain:
-        res = m_r_delta(pars, fit, r_pp, cosmology, delta=500)
-        mass_prof.append(res[0])
-        r_delta.append(res[1])
-        m_delta.append(res[2])
-    lmss, mmss, hmss = np.percentile(mass_prof, [50-ci/2., 50, 50+ci/2.], axis=0)
-    lr_d, mr_d, hr_d = np.percentile(r_delta, [50-ci/2., 50, 50+ci/2.], axis=0)
-    lm_d, mm_d, hm_d = np.percentile(m_delta, [50-ci/2., 50, 50+ci/2.], axis=0)
     # total mass profile
-    mass_plot(r_pp, mmss, lmss, hmss, mr_d, lr_d, hr_d, mm_d, lm_d, hm_d, m_vd, xmin=100, xmax=1500, plotdir=plotdir)
+    mass_prof, r_delta, m_delta = comp_mass_profs(mysamples, fit, num='all', seed=seed, delta=500, start_opt=1000., ci=ci)
+    mass_plot(r_pp, mass_prof, cosmology, delta=500, r_delta=r_delta, m_delta=m_delta, xmin=100., xmax=1500., plotdir=plotdir)
+
+    # gas fraction
+    f_gas = frac_gas_prof(mysamples, fit, num='all', seed=seed, ci=ci)
+    frac_gas_plot(r_pp, f_gas, ci=ci, plotdir=plotdir)
 
 if __name__ == '__main__':
     main()
