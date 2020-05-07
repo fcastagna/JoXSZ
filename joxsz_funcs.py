@@ -86,7 +86,7 @@ def mybeam(step, maxr_data, approx=False, filename=None, normalize=True, fwhm_be
     rad_cut = rad[np.where(abs(rad) <= 3*fwhm_beam)]
     beam_mat = centdistmat(rad_cut)
     if approx:
-        sigma_beam = fwhm_beam/(2*np.sqrt(2*np.log(2.)))
+        sigma_beam = fwhm_beam/(2*np.sqrt(2*np.log(2)))
         beam_2d = norm.pdf(beam_mat, loc=0., scale=sigma_beam)
     else:
         beam_2d = f(beam_mat)
