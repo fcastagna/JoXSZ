@@ -78,7 +78,7 @@ def mybeam(step, maxr_data, approx=False, filename=None, normalize=True, fwhm_be
     if not approx:
         r_irreg, b = read_beam(filename)
         f = interp1d(np.append(-r_irreg, r_irreg), np.append(b, b), 'cubic', bounds_error=False, fill_value=(0., 0.))
-        inv_f = lambda x: f(x)-f(0)/2
+        inv_f = lambda x: f(x)-f(0.)/2
         fwhm_beam = 2*optimize.newton(inv_f, x0=5.) 
     maxr = (maxr_data+3*fwhm_beam)//step*step
     rad = np.arange(0., maxr+step, step)
