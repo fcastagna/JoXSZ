@@ -74,16 +74,15 @@ def get_equal_tailed(data, ci=95):
 
 def best_fit_prof(cube_chain, fit, num='all', seed=None, ci=95):
     '''
-    Computes the surface brightness profile (median and interval) for the best fitting parameters
-    ---------------------------------------------------------------------------------------------
+    Computes the surface brightness profile (median and uncertainty interval) for the best fitting parameters
+    ---------------------------------------------------------------------------------------------------------
     cube_chain = 3d array of sampled values (nw x niter x nparam)
     fit = Fit object
-    nw = number of random walkers
-    num = number of parameters
+    num = number of set of parameters to include (default is 'all', i.e. nw x niter parameters)
     seed = random seed (default is None)
     ci = uncertainty level of the interval
     ------------------------------------------------
-    RETURN: median and interval profiles
+    RETURN: median and uncertainty interval profiles
     '''
     nw = cube_chain.shape[0]
     if num == 'all':
@@ -178,20 +177,26 @@ def frac_int(edges):
     return volinside/(volinside+voloutside)
 
 def cum_gas_mass(r_kpc, dens):
+    '''
+    Cumulative gas mass profile computation, given the density profile
+    ------------------------------------------------------------------
+    r_kpc = radius (kpc)
+    dens = density profile
+    '''
     edg_cm = np.append(r_kpc[0]/2, r_kpc+r_kpc[0]/2)*kpc_cm
     mgas = dens*mu_e*mu_g/solar_mass_g*4/3*np.pi*(edg_cm[1:]**3-edg_cm[:-1]**3)
     return mgas*frac_int(edg_cm)+np.concatenate(([0], np.cumsum(mgas)[:-1]))
 
 def thermodynamic_profs(vals, r_kpc, fit):
     ''' 
-    Compute the thermodynamic radial profiles
+    Thermodynamic radial profiles computation
     -----------------------------------------
     vals = parameter values
     r_kpc = radius (kpc)
     fit = Fit object
-    --------------------------------------------------------------------------------
-    RETURN: density(cm^{-3}), temperature (keV), pressure (keV*cm^{-3}), 
-            entropy (keV*cm^2), cooling time (yr), cumulative gas mass (solar mass)
+    -----------------------------------------------------------------------------------------------------------
+    RETURN: density(cm^{-3}), gass mass weighted temperature (keV), pressure (keV*cm^{-3}), entropy (keV*cm^2),
+            cooling time (yr), cumulative gas mass (solar mass), X-ray temperature (keV)
     '''
     fit.updateThawed(vals)
     pars = fit.pars
@@ -213,6 +218,17 @@ def thermodynamic_profs(vals, r_kpc, fit):
     return dens, temp, press, entr, cool, cmgas, tempx
 
 def comp_rad_profs(cube_chain, fit, num='all', seed=None, ci=95):
+    '''
+    Compute all the thermodynamic profiles from the chain of sampled values
+    -----------------------------------------------------------------------
+    cube_chain = 3d array of sampled values (nw x niter x nparam)
+    fit = Fit object
+    num = number of set of parameters to include (default is 'all', i.e. nw x niter parameters)
+    seed = random seed (default is None)
+    ci = uncertainty level of the interval
+    ---------------------------------------------------------------------------------------
+    RETURN: median and equal-tailed uncertainty interval of the main thermodynamic profiles
+    '''
     nw = cube_chain.shape[0]
     if num == 'all':
         num = nw*cube_chain.shape[1]
@@ -232,9 +248,10 @@ def plot_rad_profs(r_kpc, dens, temp, prss, entr, cool, gmss, tempx, xmin=np.nan
     Plot the thermodynamic radial profiles
     --------------------------------------
     r_kpc = radius (kpc)
-    xmin, xmax = x-axis boundaries for the plot
     dens, temp, press, entr, cool, gmss, tempx = thermodynamic best fitting profiles (median and interval)
+    xmin, xmax = x-axis boundaries for the plot (by default, they are obtained based on r_kpc)
     ci = uncertainty level of the interval
+    labsize = label font size
     plotdir = directory where to place the plot
     '''
     pdf = PdfPages(plotdir+'radial_profiles.pdf')
@@ -265,29 +282,6 @@ def plot_rad_profs(r_kpc, dens, temp, prss, entr, cool, gmss, tempx, xmin=np.nan
     pdf.savefig(bbox_inches='tight')
     pdf.close()
     plt.close()
-    
-def mass_overdens(r_kpc, cosmo, delta=500):
-    '''
-    Compute the mass profile (volume x density) in terms of the overdensity radius 
-    (overdensity radius = radius within which the average density is Δ times the critical density at the cluster's redshift)
-    ------------------------------------------------------------------------------------------------------------------------
-    r_kpc = radius (kpc)
-    cosmo = Cosmology object
-    delta = overdensity (Δ)
-    ------------------------
-    RETURN: the mass profile
-    '''
-    # H0 (s^-1)
-    H0_s = cosmo.H0/Mpc_km
-    # H(z) (s^-1)
-    HZ = H0_s*np.sqrt(cosmo.WM*(1+cosmo.z)**3+cosmo.WV)
-    # critical density (g cm^-3)
-    rho_c = 3*HZ**2/(8*np.pi*G_cgs)
-    # radius (cm)
-    r_cm = r_kpc*kpc_cm   
-    # M(< r_delta) (g*solar masses)
-    mass_r_delta = 4/3*np.pi*rho_c*delta*r_cm**3/solar_mass_g
-    return mass_r_delta
 
 def hydro_mass(pars, fit, r_kpc, cosmo, overdens=True, delta=500, start_opt=700.):
     '''
@@ -298,8 +292,8 @@ def hydro_mass(pars, fit, r_kpc, cosmo, overdens=True, delta=500, start_opt=700.
     pars = parameter values
     fit = Fit object
     r_kpc = radius (kpc)
-    cosmo = Cosmology object
-    overdens = whether to compute overdensity measures (True/False, default is True)
+    cosmo = Cosmology object (adapted from MBProj2)
+    overdens = whether to compute overdensity measures (boolean, default is True)
     delta = overdensity (Δ)
     start_opt = starting value for optimization (kpc)
     -------------------------------------------------------------------------------
@@ -314,7 +308,21 @@ def hydro_mass(pars, fit, r_kpc, cosmo, overdens=True, delta=500, start_opt=700.
     else:
         return m_prof
 
-def comp_mass_profs(cube_chain, fit, num='all', seed=None, overdens=True, delta=500, start_opt=700., ci=95):
+def comp_mass_prof(cube_chain, fit, num='all', seed=None, overdens=True, delta=500, start_opt=700., ci=95):
+    '''
+    Compute the hydrostatic mass profile from the chain of sampled values
+    ---------------------------------------------------------------------
+    cube_chain = 3d array of sampled values (nw x niter x nparam)
+    fit = Fit object
+    num = number of set of parameters to include (default is 'all', i.e. nw x niter parameters)
+    seed = random seed (default is None)
+    overdens = whether to compute overdensity measures (boolean, default is True)
+    delta = overdensity (Δ)
+    start_opt = starting value for optimization (kpc)
+    ci = uncertainty level of the interval
+    ---------------------------------------------------------------------------------------------------------------------------
+    RETURN: median and equal-tailed uncertainty interval of the mass profile, and optionally of the overdensity radius and mass
+    '''    
     nw = cube_chain.shape[0]
     if num == 'all':
         num = nw*cube_chain.shape[1]
@@ -330,44 +338,35 @@ def comp_mass_profs(cube_chain, fit, num='all', seed=None, overdens=True, delta=
         if overdens:
             r_d.append(res[1]), m_d.append(res[2])
     mass = get_equal_tailed(m_prof, ci)
-    r_delta = get_equal_tailed(r_d, ci)
-    m_delta = get_equal_tailed(m_d, ci)
-    return mass, r_delta, m_delta
+    if overdens:
+        r_delta = get_equal_tailed(r_d, ci)
+        m_delta = get_equal_tailed(m_d, ci)
+        return mass, r_delta, m_delta
+    else:
+        return mass
 
-def frac_gas_prof(cube_chain, fit, num='all', seed=None, ci=95):
-    nw = cube_chain.shape[0]
-    if num == 'all':
-        num = nw*cube_chain.shape[1]
-    w, it = np.meshgrid(np.arange(nw), np.arange(cube_chain.shape[1]))
-    w = w.flatten()
-    it = it.flatten()
-    np.random.seed(seed)
-    rand = np.random.choice(w.size, num, replace=False)
-    f_gas = []
-    for j in rand:
-        fit.updateThawed(cube_chain[w[j],it[j],:])
-        pars = fit.pars
-        dens = fit.model.ne_cmpt.vikhFunction(pars, fit.data.sz.r_pp)
-        m_gas = cum_gas_mass(fit.data.sz.r_pp, dens)        
-        m_tot = hydro_mass(cube_chain[w[j],it[j],:], fit, fit.data.sz.r_pp, fit.data.annuli.cosmology, overdens=False)
-        f_gas.append(m_gas/m_tot)
-    frac_gas = get_equal_tailed(f_gas, ci)
-    return frac_gas   
-    
-def frac_gas_plot(r_kpc, f_gas, xmin=100., xmax=1000., ci=95, labsize=23, plotdir='./'):
-    pdf = PdfPages(plotdir+'frac_gas.pdf')
-    plt.clf()
-    plt.title('Gas fraction profile (median + %i%% error)' % ci, fontdict={'fontsize': labsize})
-    ind = np.where((r_kpc > xmin) & (r_kpc < xmax))
-    e_ind = np.concatenate(([ind[0][0]-1], ind[0], [ind[0][-1]+1]), axis=0)
-    plt.errorbar(r_kpc[e_ind], f_gas[1][e_ind])
-    plt.fill_between(r_kpc[e_ind], f_gas[0][e_ind], f_gas[2][e_ind], color='powderblue')
-    plt.xscale('log')
-    plt.xlim(xmin, xmax)
-    plt.xlabel('Radius (kpc)', fontdict={'fontsize': labsize})
-    plt.ylabel('Gas fraction', fontdict={'fontsize': labsize})
-    pdf.savefig(bbox_inches='tight')
-    pdf.close()
+def mass_overdens(r_kpc, cosmo, delta=500):
+    '''
+    Compute the mass profile (volume x density) in terms of the overdensity radius 
+    (overdensity radius = radius within which the average density is Δ times the critical density at the cluster's redshift)
+    ------------------------------------------------------------------------------------------------------------------------
+    r_kpc = radius (kpc)
+    cosmo = Cosmology object (adapted from MBProj2)
+    delta = overdensity (Δ)
+    ------------------------
+    RETURN: the mass profile
+    '''
+    # H0 (s^-1)
+    H0_s = cosmo.H0/Mpc_km
+    # H(z) (s^-1)
+    HZ = H0_s*np.sqrt(cosmo.WM*(1+cosmo.z)**3+cosmo.WV)
+    # critical density (g cm^-3)
+    rho_c = 3*HZ**2/(8*np.pi*G_cgs)
+    # radius (cm)
+    r_cm = r_kpc*kpc_cm   
+    # M(< r_delta) (g*solar masses)
+    mass_r_delta = 4/3*np.pi*rho_c*delta*r_cm**3/solar_mass_g
+    return mass_r_delta
     
 def mass_plot(r_kpc, mass_prof, cosmo, overdens=True, delta=500, r_delta=None, m_delta=None, xmin=np.nan, xmax=np.nan, 
               labsize=23, ticksize=20, textsize=23, plotdir='./'):
@@ -375,12 +374,13 @@ def mass_plot(r_kpc, mass_prof, cosmo, overdens=True, delta=500, r_delta=None, m
     Cumulative mass profile plot
     ----------------------------
     r_kpc = radius (kpc)
-    med_mass, low_mass, hig_mass = median mass profile with CI boundaries
-    med_rd, low_rd, hig_rd = overdensity radius with CI boundaries
-    med_md, low_md, hig_md = overdensity mass with CI boundaries
-    m_vd = cumulative mass profile in terms of volume and density
-    xmin, xmax = limits on the X-axis
-    ymin, ymax = limits on the Y-axis
+    mass_prof = median mass profile with uncertainty interval
+    cosmo = Cosmology object (adapted from MBProj2)
+    overdens = whether to compute overdensity measures (boolean, default is True)
+    delta = overdensity (Δ)
+    r_delta = overdensity radius with uncertainty interval
+    m_delta = overdensity mass with uncertainty interval
+    xmin, xmax = x-axis boundaries for the plot (by default, they are obtained based on r_kpc)
     labsize = label font size
     ticksize = ticks font size
     textsize = text font size
@@ -414,5 +414,60 @@ def mass_plot(r_kpc, mass_prof, cosmo, overdens=True, delta=500, r_delta=None, m
     plt.ylabel('Total mass (M$_\odot$)', fontdict={'fontsize': labsize})
     plt.tick_params(labelsize=ticksize, length=5, which='major')
     plt.tick_params(labelsize=ticksize, length=3, which='minor')
+    pdf.savefig(bbox_inches='tight')
+    pdf.close()
+    
+def frac_gas_prof(cube_chain, fit, num='all', seed=None, ci=95):
+    '''
+    Computes the gas fraction profile (median and uncertainty interval)
+    -------------------------------------------------------------------
+    cube_chain = 3d array of sampled values (nw x niter x nparam)
+    fit = Fit object
+    num = number of set of parameters to include (default is 'all', i.e. nw x niter parameters)
+    seed = random seed (default is None)
+    ci = uncertainty level of the interval
+    '''
+    nw = cube_chain.shape[0]
+    if num == 'all':
+        num = nw*cube_chain.shape[1]
+    w, it = np.meshgrid(np.arange(nw), np.arange(cube_chain.shape[1]))
+    w = w.flatten()
+    it = it.flatten()
+    np.random.seed(seed)
+    rand = np.random.choice(w.size, num, replace=False)
+    f_gas = []
+    for j in rand:
+        fit.updateThawed(cube_chain[w[j],it[j],:])
+        pars = fit.pars
+        dens = fit.model.ne_cmpt.vikhFunction(pars, fit.data.sz.r_pp)
+        m_gas = cum_gas_mass(fit.data.sz.r_pp, dens)        
+        m_tot = hydro_mass(cube_chain[w[j],it[j],:], fit, fit.data.sz.r_pp, fit.data.annuli.cosmology, overdens=False)
+        f_gas.append(m_gas/m_tot)
+    frac_gas = get_equal_tailed(f_gas, ci)
+    return frac_gas   
+    
+def frac_gas_plot(r_kpc, f_gas, xmin=np.nan, xmax=np.nan, ci=95, labsize=23, plotdir='./'):
+    '''
+    Gas fraction profile plot
+    ----------------------------
+    r_kpc = radius (kpc)
+    f_gas = median gas fraction profile with uncertainty interval
+    xmin, xmax = x-axis boundaries for the plot (by default, they are obtained based on r_kpc)
+    ci = uncertainty level of the interval
+    labsize = label font size
+    plotdir = directory where to place the plot
+    '''
+    pdf = PdfPages(plotdir+'frac_gas.pdf')
+    plt.clf()
+    plt.title('Gas fraction profile (median + %i%% error)' % ci, fontdict={'fontsize': labsize})
+    xmin, xmax = np.nanmax([r_kpc[0], xmin]), np.nanmin([r_kpc[-1], xmax])
+    ind = np.where((r_kpc > xmin) & (r_kpc < xmax))
+    e_ind = np.concatenate(([ind[0][0]-1], ind[0], [ind[0][-1]+1]), axis=0)
+    plt.errorbar(r_kpc[e_ind], f_gas[1][e_ind])
+    plt.fill_between(r_kpc[e_ind], f_gas[0][e_ind], f_gas[2][e_ind], color='powderblue')
+    plt.xscale('log')
+    plt.xlim(xmin, xmax)
+    plt.xlabel('Radius (kpc)', fontdict={'fontsize': labsize})
+    plt.ylabel('Gas fraction', fontdict={'fontsize': labsize})
     pdf.savefig(bbox_inches='tight')
     pdf.close()
