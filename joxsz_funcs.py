@@ -9,6 +9,7 @@ from scipy.interpolate import interp1d
 from scipy.signal import fftconvolve
 from scipy.fftpack import fft2, ifft2
 import matplotlib.pyplot as plt
+import time
 
 plt.style.use('classic')
 
@@ -481,8 +482,23 @@ def getLikelihood(self, vals=None):
     return totlike
 
 def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfrac=0.2, minimprove=0.01):
-
+    '''
+    MCMC execution. Adapted from MBProj2
+    ------------------------------------
+    mcmc = 
+    nburn = number of burn-in iterations
+    nsteps = number of iterations after burn-in
+    nthin = thinning
+    comp_time = shows the computation time (True/False, default is True)
+    autorefit = refit position if new minimum is found during burn in (True/False, default is True)
+    minfrac = minimum fraction of burn in to do if new minimum found
+    minimprove = minimum improvement in fit statistic to do a new fit
+    '''
     def innerburn():
+        '''
+        Return False if new minimum found and autorefit is set. Adapted from MBProj2
+        ----------------------------------------------------------------------------
+        '''
         bestfit = None
         bestprob = initprob = mcmc.fit.getLikelihood(mcmc.fit.thawedParVals())
         p0 = mcmc._generateInitPars()
@@ -502,7 +518,6 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
                 return False
         mcmc.sampler.reset()
         return True
-    import time
     time0 = time.time()
     print('Starting burn-in')
     while not innerburn():
