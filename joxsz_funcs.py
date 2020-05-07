@@ -3,22 +3,20 @@ import numpy as np
 from scipy import optimize
 from scipy.stats import norm
 import mbproj2 as mb
-from mbproj2.physconstants import keV_erg, kpc_cm, mu_g, G_cgs, solar_mass_g, ne_nH, Mpc_cm, yr_s, mu_e, Mpc_km
+from mbproj2.physconstants import keV_erg, kpc_cm, mu_g, G_cgs, solar_mass_g
 from abel.direct import direct_transform
 from scipy.interpolate import interp1d
 from scipy.signal import fftconvolve
 from scipy.fftpack import fft2, ifft2
-from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
-
-import corner
+import time
 
 plt.style.use('classic')
 
 class SZ_data:
     '''
-    Class for SZ data used in PreProFit
-    -----------------------------------
+    Class for the SZ data required for the analysis
+    -----------------------------------------------
     '''
     def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering):
         self.phys_const = phys_const
@@ -54,11 +52,11 @@ def read_beam(filename):
     --------------------------------------------------------------------------------
     '''
     radius, beam_prof = read_xy_err(filename, ncol=2)
-    if np.isnan(beam_prof).sum() > 0:
+    if np.isnan(beam_prof).sum() > 0.:
         first_nan = np.where(np.isnan(beam_prof))[0][0]
         radius = radius[:first_nan]
         beam_prof = beam_prof[:first_nan]
-    if beam_prof.min() < 0:
+    if beam_prof.min() < 0.:
         first_neg = np.where(beam_prof < 0)[0][0]
         radius = radius[:first_neg]
         beam_prof = beam_prof[:first_neg]
@@ -70,20 +68,20 @@ def mybeam(step, maxr_data, approx=False, filename=None, normalize=True, fwhm_be
     --------------------------------------------------------------------------------------------------------
     step = binning step
     maxr_data = highest radius in the data
-    approx = whether to approximate or not the beam to the normal distribution (True/False)
+    approx = whether to approximate or not the beam to the normal distribution (boolean, default is False)
     filename = name of the file including the beam data
-    normalize = whether to normalize or not the output 2D image (True/False)
+    normalize = whether to normalize or not the output 2D image (boolean, default is True)
     fwhm_beam = Full Width at Half Maximum
     -------------------------------------------------------------------
     RETURN: the 2D image of the beam and his Full Width at Half Maximum
     '''
     if not approx:
         r_irreg, b = read_beam(filename)
-        f = interp1d(np.append(-r_irreg, r_irreg), np.append(b, b), 'cubic', bounds_error=False, fill_value=(0, 0))
-        inv_f = lambda x: f(x)-f(0)/2
-        fwhm_beam = 2*optimize.newton(inv_f, x0=5) 
+        f = interp1d(np.append(-r_irreg, r_irreg), np.append(b, b), 'cubic', bounds_error=False, fill_value=(0., 0.))
+        inv_f = lambda x: f(x)-f(0.)/2
+        fwhm_beam = 2*optimize.newton(inv_f, x0=5.) 
     maxr = (maxr_data+3*fwhm_beam)//step*step
-    rad = np.arange(0, maxr+step, step)
+    rad = np.arange(0., maxr+step, step)
     rad = np.append(-rad[:0:-1], rad)
     rad_cut = rad[np.where(abs(rad) <= 3*fwhm_beam)]
     beam_mat = centdistmat(rad_cut)
@@ -108,11 +106,11 @@ def centdistmat(r, offset=0.):
     x, y = np.meshgrid(r, r)
     return np.sqrt(x**2+y**2)+offset
 
-def read_tf(filename, approx=False, loc=0, scale=0.02, c=0.95):
+def read_tf(filename, approx=False, loc=0., scale=0.02, c=0.95):
     '''
     Read the transfer function data from the specified file
     -------------------------------------------------------
-    approx = whether to approximate or not the tf to the normal cdf (True/False)
+    approx = whether to approximate or not the tf to the normal cdf (boolean, default is False)
     loc, scale, c = location, scale and normalization parameters for the normal cdf approximation
     ---------------------------------------------------------------------------------------------
     RETURN: the vectors of wave numbers and transmission values
@@ -177,7 +175,7 @@ def loadBand(infg, inbg, bandE, rmf, arf):
     -------------------------------------
     RETURN: Band object 
     '''
-    data = np.loadtxt(infg %(bandE[0], bandE[1])) # foreground profile
+    data = np.loadtxt(infg % (bandE[0], bandE[1])) # foreground profile
     radii = data[:,0] # radii of centres of annuli in arcmin
     hws = data[:,1] # half-width of annuli in arcmin
     cts = data[:,2] # number of counts (integer)
@@ -188,8 +186,8 @@ def loadBand(infg, inbg, bandE, rmf, arf):
     areascales = areas/geomareas # ratio between real pixel area and geometric area
     band = mb.Band(bandE[0]/1000, bandE[1]/1000, cts, rmf, arf, exps, areascales=areascales)
     backd = np.loadtxt(inbg % (bandE[0], bandE[1])) # background profile
-    band.backrates = backd[0:radii.size, 4] # rates in (cts/s/arcmin^2)
-    lastmyrad = backd[0:radii.size, 0]
+    band.backrates = backd[0:radii.size,4] # rates in (cts/s/arcmin^2)
+    lastmyrad = backd[0:radii.size,0]
     if (abs(lastmyrad[-1]-radii[-1]) > .001):
          raise RuntimeError('Problem while reading bg file', lastmyrad[-1], radii[-1])
     return band
@@ -213,10 +211,10 @@ class CmptPressure(mb.Cmpt):
         r_p = characteristic radius
         '''        
         pars = {
-            'P_0': mb.Param(0.4, minval=0, maxval=20),
-            'a': mb.Param(1.33, minval=0.1, maxval=10),
-            'b': mb.Param(4.13, minval=0.1, maxval=15),
-            'c': mb.Param(0.014, minval=0, maxval=3),
+            'P_0': mb.Param(0.4, minval=0., maxval=20.),
+            'a': mb.Param(1.33, minval=0.1, maxval=10.),
+            'b': mb.Param(4.13, minval=0.1, maxval=15.),
+            'c': mb.Param(0.014, minval=0., maxval=3.),
             'r_p': mb.Param(300., minval=100., maxval=1000.)
             }
         return pars
@@ -264,15 +262,15 @@ class CmptUPPTemperature(mb.Cmpt):
         Default parameter T_ratio = T_X / T_SZ
         --------------------------------------
         '''
-        pars = {'log(T_X/T_{SZ})': mb.Param(0, minval=-1, maxval=1)}
+        pars = {'log(T_X/T_{SZ})': mb.Param(0., minval=-1., maxval=1.)}
         return pars
     
     def temp_fun(self, pars, r_kpc, getT_SZ=False):
         '''
         Compute the temperature profile (X-ray by default, SZ alternatively).
-        Please note that T_X = T_SZ if log(T_X/T_{SZ}) is not fitted but fixed to 0!
-        ----------------------------------------------------------------------------
-        getT_SZ = whether to return T_SZ (True/False, default is False)
+        Please note that T_X = T_SZ if log(T_ratio) is not fitted but fixed to 0!
+        -------------------------------------------------------------------------
+        getT_SZ = whether to return T_SZ (boolean, default is False)
         '''
         pr = self.press_prof.press_fun(pars, r_kpc)
         ne = self.ne_prof.vikhFunction(pars, r_kpc)
@@ -335,17 +333,17 @@ def mydens_defPars(self):
     beta_2 = shape parameter
     '''
     pars = {
-        'log(n_0)': mb.Param(-3, minval=-7, maxval=2),
-        r'\beta': mb.Param(2/3., minval=0., maxval=4.),
+        'log(n_0)': mb.Param(-3., minval=-7., maxval=2.),
+        r'\beta': mb.Param(2/3, minval=0., maxval=4.),
         'log(r_c)': mb.Param(2.3, minval=-1., maxval=3.7),
-        'log(r_s)': mb.Param(2.7, minval=0, maxval=3.7),
-        r'\alpha': mb.Param(0., minval=-1, maxval=2.),
+        'log(r_s)': mb.Param(2.7, minval=0., maxval=3.7),
+        r'\alpha': mb.Param(0., minval=-1., maxval=2.),
         r'\epsilon': mb.Param(3., minval=0., maxval=5.),
-        r'\gamma': mb.Param(3., minval=0., maxval=10, frozen=True),
+        r'\gamma': mb.Param(3., minval=0., maxval=10., frozen=True),
         }
     if self.mode == 'double':
         pars.update({
-            'log(n_{02})': mb.Param(-1, minval=-7, maxval=2),
+            'log(n_{02})': mb.Param(-1., minval=-7., maxval=2.),
             r'\beta_2': mb.Param(0.5, minval=0., maxval=4.),
             'log(r_{c2})': mb.Param(1.7, minval=-1., maxval=3.7),
             })
@@ -383,7 +381,7 @@ def mydens_prior(self, pars):
     r_s = 10**pars['log(r_s)'].val
     if r_c > r_s:
         return -np.inf
-    return 0
+    return 0.
 
 def get_sz_like(self, output='ll'):
     '''
@@ -404,7 +402,7 @@ def get_sz_like(self, output='ll'):
     # Compton parameter
     y = (kpc_cm*self.data.sz.phys_const[1]/self.data.sz.phys_const[0]*ab)
     f = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
-                 np.append(y, y), 'cubic', bounds_error=False, fill_value=(0, 0))
+                 np.append(y, y), 'cubic', bounds_error=False, fill_value=(0., 0.))
     # Compton parameter 2D image
     y_2d = f(self.data.sz.d_mat) 
     # Convolution with the beam
@@ -416,7 +414,8 @@ def get_sz_like(self, output='ll'):
     t_prof = self.model.T_cmpt.temp_fun(self.pars, self.data.sz.r_pp[:self.data.sz.ub], getT_SZ=True)
     h = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
                  np.append(t_prof, t_prof), 'cubic', bounds_error=False, fill_value=(t_prof[-1], t_prof[-1]))
-    map_prof = map_out[conv_2d.shape[0]//2, conv_2d.shape[0]//2:]*self.data.sz.convert(np.append(h(0), t_prof))*self.pars['calibration'].val
+    map_prof = map_out[conv_2d.shape[0]//2, 
+                       conv_2d.shape[0]//2:]*self.data.sz.convert(np.append(h(0.), t_prof))*self.pars['calibration'].val
     g = interp1d(self.data.sz.radius[self.data.sz.sep:], map_prof, 'cubic', fill_value='extrapolate')
     # Log-likelihood calculation
     chisq = np.nansum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/self.data.sz.flux_data[2])**2)
@@ -461,7 +460,7 @@ def getLikelihood(self, vals=None):
     # exclude unphysical mass profiles
     if self.exclude_unphy_mass:
         m_prof = self.mass_cmpt.mass_fun(self.pars, self.data.sz.r_pp) 
-        if not(all(np.gradient(m_prof, 1) > 0)):
+        if not(all(np.gradient(m_prof, 1) > 0.)):
             return -np.inf
     # X-ray fitted profiles
     profs = self.calcProfiles()
@@ -483,8 +482,23 @@ def getLikelihood(self, vals=None):
     return totlike
 
 def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfrac=0.2, minimprove=0.01):
-
+    '''
+    MCMC execution. Adapted from MBProj2
+    ------------------------------------
+    mcmc = 
+    nburn = number of burn-in iterations
+    nsteps = number of iterations after burn-in
+    nthin = thinning
+    comp_time = shows the computation time (boolean, default is True)
+    autorefit = refit position if new minimum is found during burn in (boolean, default is True)
+    minfrac = minimum fraction of burn in to do if new minimum found
+    minimprove = minimum improvement in fit statistic to do a new fit
+    '''
     def innerburn():
+        '''
+        Return False if new minimum found and autorefit is set. Adapted from MBProj2
+        ----------------------------------------------------------------------------
+        '''
         bestfit = None
         bestprob = initprob = mcmc.fit.getLikelihood(mcmc.fit.thawedParVals())
         p0 = mcmc._generateInitPars()
@@ -498,13 +512,12 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
                 maxidx = lnprob.argmax()
                 bestfit = mcmc.pos0[maxidx]
             if (autorefit and i > nburn*minfrac and bestfit is not None ):
-                print('Restarting burn as new best fit has been found (%g > %g)' % (bestprob, initprob) )
+                print('Restarting burn as new best fit has been found (%g > %g)' % (bestprob, initprob))
                 mcmc.fit.updateThawed(bestfit)
                 mcmc.sampler.reset()
                 return False
         mcmc.sampler.reset()
         return True
-    import time
     time0 = time.time()
     print('Starting burn-in')
     while not innerburn():
@@ -527,325 +540,3 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
         h, rem = divmod(time1-time0, 3600)
         print('Computation time: '+str(int(h))+'h '+str(int(rem//60))+'m')
     print('Acceptance fraction: %s' %np.mean(mcmc.sampler.acceptance_fraction))
-
-def traceplot(mysamples, param_names, nsteps, nw, plotw=20, ppp=4, labsize=18, ticksize=10, plotdir='./'):
-    '''
-    Traceplot of the MCMC
-    ---------------------
-    mysamples = array of sampled values in the chain
-    param_names = names of the parameters
-    nsteps = number of steps in the chain (after burn-in) 
-    nw = number of random walkers
-    plotw = number of random walkers that we wanna plot (default is 20)
-    ppp = number of plots per page
-    labsize = label font size
-    ticksize = ticks font size
-    plotdir = directory where to place the plot
-    '''
-    plt.clf()
-    nw_step = int(np.ceil(nw/plotw))
-    param_latex = ['${}$'.format(i) for i in param_names]
-    pdf = PdfPages(plotdir+'traceplot.pdf')
-    for i in np.arange(mysamples.shape[1]):
-        plt.subplot(ppp, 1, i%ppp+1)
-        for j in range(nw)[::nw_step]:
-            plt.plot(np.arange(nsteps)+1, mysamples[j::nw,i], linewidth=.2)
-            plt.tick_params(labelbottom=False)
-        plt.ylabel('%s' %param_latex[i], fontdict={'fontsize': labsize})
-        plt.tick_params('y', labelsize=ticksize)
-        if (abs((i+1)%ppp) < 0.01):
-            plt.tick_params(labelbottom=True)
-            plt.xlabel('Iteration number')
-            pdf.savefig(bbox_inches='tight')
-            if i+1 < mysamples.shape[1]:
-                plt.clf()
-        elif i+1 == mysamples.shape[1]:
-            plt.tick_params(labelbottom=True)
-            plt.xlabel('Iteration number')
-            pdf.savefig(bbox_inches='tight')
-    pdf.close()
-
-def triangle(mysamples, param_names, labsize=25, titsize=15, plotdir='./'):
-    '''
-    Univariate and multivariate distribution of the parameters in the MCMC
-    ----------------------------------------------------------------------
-    mysamples = array of sampled values in the chain
-    param_names = names of the parameters
-    labsize = label font size
-    titsize = titles font size
-    plotdir = directory where to place the plot
-    '''
-    param_latex = ['${}$'.format(i) for i in param_names]
-    plt.clf()
-    pdf = PdfPages(plotdir+'cornerplot.pdf')
-    corner.corner(mysamples, labels=param_latex, quantiles=np.repeat(.5, len(param_latex)), show_titles=True, 
-                  title_kwargs={'fontsize': titsize}, label_kwargs={'fontsize': labsize})
-    pdf.savefig(bbox_inches='tight')
-    pdf.close()
-
-def fitwithmod(data, lo, med, hi, geomareas, xfig, errxfig, flatchain, fit, ci, labsize=25, ticksize=20, textsize=30, plotdir='./'):
-    '''
-    Surface brightness profiles (points with error bars) and best fitting profiles with uncertainties
-    -------------------------------------------------------------------------------------------------
-    data = Data object containing information on the X-ray bands and SZ data
-    lo, med, hi = best (median) fitting profiles with uncertainties
-    geomareas = annuli areas for X-ray data
-    xfig, errxfig = radii of X-ray data and related errors
-    flatchain = array of sampled values in the chain
-    fit = Fit object
-    ci = uncertainty level of the interval
-    labsize = label font size
-    ticksize = ticks font size
-    textsize = text font size
-    plotdir = directory where to place the plot
-    '''
-    plt.clf()
-    pdf = PdfPages(plotdir+'fit_on_data.pdf')
-    npanels = len(data.bands)+1
-    f, ax = plt.subplots(int(np.ceil(npanels/3)), 3, figsize=(24, 6*np.ceil(npanels/3)))
-    for i, (band, llo, mmed, hhi) in enumerate(zip(data.bands, lo, med, hi)):
-        ax[i//3, i%3].set_xscale('log')
-        ax[i//3, i%3].set_yscale('log')
-        ax[i//3, i%3].axis([0.9*xfig.min(), 1.2*xfig.max(), 
-                            1, 10**np.ceil(np.log10(np.max([np.max(band.cts/geomareas/band.areascales) for band in data.bands])))])
-        ax[i//3, i%3].text(0.1, 0.1, '[%g-%g] keV' % (band.emin_keV, band.emax_keV), horizontalalignment='left', 
-                           verticalalignment='bottom', transform=ax[i//3, i%3].transAxes, fontdict={'fontsize': textsize})	
-        ax[i//3, i%3].errorbar(xfig, mmed/geomareas/band.areascales, color='r', label='_nolegend_')
-        ax[i//3, i%3].fill_between(xfig, hhi/geomareas/band.areascales, llo/geomareas/band.areascales, color='gold', label='_nolegend_')
-        ax[i//3, i%3].errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, yerr=band.cts**0.5/geomareas/band.areascales, 
-                               fmt='o', markersize=3, color='black', label='_nolegend_')
-        ax[i//3, i%3].set_ylabel('$S_X$ (counts·arcmin$^{-2}$)', fontdict={'fontsize': labsize})
-        ax[i//3, i%3].set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
-        ax[i//3, i%3].tick_params(labelsize=ticksize, length=10, which='major')
-        ax[i//3, i%3].tick_params(labelsize=ticksize, length=6, which='minor')
-    [ax[j//3, j%3].axis('off') for j in np.arange(i+2, ax.size)]
-    ax[i//3, i%3].errorbar(xfig, band.cts/geomareas/band.areascales, xerr=errxfig, yerr=band.cts**0.5/geomareas/band.areascales, 
-                           color='black', fmt='o', markersize=3, label='X-ray data')
-    med_xsz, lo_xsz, hi_xsz = best_fit_xsz(flatchain, fit, ci)
-    sep = data.sz.radius.size//2
-    r_am = data.sz.radius[sep:sep+med_xsz.size]/60
-    ax[(i+1)//3, (i+1)%3].errorbar(data.sz.flux_data[0]/60, data.sz.flux_data[1], yerr=data.sz.flux_data[2], fmt='o', markersize=2, 
-                                   color='black', label='SZ data')
-    ax[(i+1)//3, (i+1)%3].errorbar(r_am, med_xsz, color='r', label='Best-fit')
-    ax[(i+1)//3, (i+1)%3].fill_between(r_am, lo_xsz, hi_xsz, color='gold', label='95% CI')
-    ax[(i+1)//3, (i+1)%3].set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
-    ax[(i+1)//3, (i+1)%3].set_ylabel('$S_{SZ}$ (mJy·beam$^{-1}$)', fontdict={'fontsize': labsize})
-    ax[(i+1)//3, (i+1)%3].set_xscale('linear')
-    ax[(i+1)//3, (i+1)%3].set_xlim(0, np.ceil(data.sz.flux_data[0][-1]/60))
-    ax[(i+1)//3, (i+1)%3].tick_params(labelsize=ticksize)
-    hand_sz, lab_sz = ax[(i+1)//3, (i+1)%3].get_legend_handles_labels()
-    hand_x, lab_x = ax[i//3, i%3].get_legend_handles_labels()
-    f.legend([hand_sz[2], hand_sz[0], hand_x[0], hand_sz[1]], [lab_sz[2], lab_sz[0], lab_x[0], lab_sz[1]], 
-             loc='lower center', ncol=4, fontsize=labsize, bbox_to_anchor=(.5, .99))
-    plt.tight_layout()
-    pdf.savefig(bbox_inches='tight')
-    pdf.close()
-
-def best_fit_xsz(flatchain, fit, ci):
-    '''
-    Computes the surface brightness profile (median and interval) for the best fitting parameters
-    ---------------------------------------------------------------------------------------------
-    flatchain = array of sampled values in the chain
-    fit = Fit object
-    ci = uncertainty level of the interval
-    ------------------------------------------------
-    RETURN: median and interval profiles
-    '''
-    profs = []
-    for pars in flatchain[::10]:
-        fit.updateThawed(pars)
-        out_prof = fit.get_sz_like(output='bright')
-        profs.append(out_prof)
-    profs = np.row_stack(profs)
-    med = np.median(profs, axis=0)
-    lo, hi = np.percentile(profs, [50-ci/2, 50+ci/2], axis=0)
-    return med, lo, hi
-
-def plot_best_sz(sz, med_xz, lo_xz, hi_xz, ci, plotdir='./'):
-    '''
-    SZ surface brightness profile (points with error bars) and best fitting profile with uncertainty interval
-    ---------------------------------------------------------------------------------------------------------
-    sz = SZ data object
-    lo_xz, med_xz, hi_xz = best (median) fitting profiles with uncertainties
-    ci = uncertainty level of the interval
-    plotdir = directory where to place the plot    
-    '''
-    plt.clf()
-    sep = sz.radius.size//2
-    pdf = PdfPages(plotdir+'best_sz.pdf')
-    plt.title('Compton parameter profile - best fit with %s' % ci+'% CI')
-    plt.plot(sz.radius[sep:sep+med_xz.size], med_xz, color='b')
-    plt.plot(sz.radius[sep:sep+med_xz.size], lo_xz, ':', color='b', label='_nolegend_')
-    plt.plot(sz.radius[sep:sep+med_xz.size], hi_xz, ':', color='b', label='_nolegend_')
-    plt.scatter(sz.flux_data[0], sz.flux_data[1], color='black')
-    plt.errorbar(sz.flux_data[0], sz.flux_data[1], yerr=sz.flux_data[2], fmt='o', markersize=4, color='black')
-    plt.axhline(0, linestyle=':', color='black', label='_nolegend_')
-    plt.xlabel('Radius (arcsec)')
-    plt.ylabel('y * 10$^{4}$')
-    plt.xlim(-2, 127)
-    plt.legend(('(SZ + X) fit', 'SZ data'), loc='lower right')
-    pdf.savefig(bbox_inches='tight')
-    pdf.close()
-
-def frac_int(edges):
-    '''
-    Fraction of mass of shell which is in the inner and outer halves of the midpoint
-    Adapted from MBProj2
-    --------------------------------------------------------------------------------
-    edges = edges of the shells containing X-ray data (cm)
-    ----------------------------------------------
-    RETURN: the fraction of mass in the inner half
-    '''
-    low_r, hig_r = edges[:-1], edges[1:]    
-    volinside = (low_r+hig_r)**3/24-low_r**3/3
-    voloutside = hig_r**3/3-(low_r+hig_r)**3/24
-    return volinside/(volinside+voloutside)
-
-def my_rad_profs(vals, r_kpc, fit):
-    ''' 
-    Compute the thermodynamic radial profiles
-    -----------------------------------------
-    vals = parameter values
-    r_kpc = radius (kpc)
-    fit = Fit object
-    --------------------------------------------------------------------------------
-    RETURN: density(cm^{-3}), temperature (keV), pressure (keV*cm^{-3}), 
-            entropy (keV*cm^2), cooling time (yr), cumulative gas mass (solar mass)
-    '''
-    fit.updateThawed(vals)
-    pars = fit.pars
-    # density
-    dens = fit.model.ne_cmpt.vikhFunction(pars, r_kpc)
-    # temperature (SZ)
-    temp = fit.model.T_cmpt.temp_fun(pars, r_kpc, getT_SZ=True)
-    # temperature (X-ray)
-    tempx = fit.model.T_cmpt.temp_fun(pars, r_kpc)
-    # pressure
-    press = fit.press.press_fun(pars, r_kpc)
-    # entropy
-    entr = temp/dens**(2/3)
-    # cooling time
-    cool = (5/2)*dens*(1+1/ne_nH)*temp*keV_erg/(fit.data.annuli.ctrate.getFlux(temp, np.repeat(pars['Z'].val, temp.size), dens)*
-                                                4*np.pi*(fit.data.annuli.cosmology.D_L*Mpc_cm)**2)/yr_s
-    # cumulative gas mass
-    edg_cm = np.append(r_kpc[0]/2, r_kpc+r_kpc[0]/2)*kpc_cm
-    mgas = dens*mu_e*mu_g/solar_mass_g*4/3*np.pi*(edg_cm[1:]**3-edg_cm[:-1]**3)
-    cmgas = mgas*frac_int(edg_cm)+np.concatenate(([0], np.cumsum(mgas)[:-1]))
-    return dens, temp, press, entr, cool, cmgas, tempx
-
-def plot_rad_profs(r_kpc, xmin, xmax, dens, temp, prss, entr, cool, gmss, tempx, plotdir='./'):
-    '''
-    Plot the thermodynamic radial profiles
-    --------------------------------------
-    r_kpc = radius (kpc)
-    xmin, xmax = x-axis boundaries for the plot
-    dens, temp, press, entr, cool, gmss, tempx = thermodynamic best fitting profiles (median and interval)
-    plotdir = directory where to place the plot
-    '''
-    pdf = PdfPages(plotdir+'radial_profiles.pdf')
-    plt.clf()
-    f, ax = plt.subplots(3, 2, sharex=True)
-    ind = np.where((r_kpc > xmin) & (r_kpc < xmax))
-    e_ind = np.concatenate(([ind[0][0]-1], ind[0], [ind[0][-1]+1]), axis=0)
-    prop = [dens, temp, prss, entr, cool, gmss]
-    labs = ['Density (cm$^{-3}$)', 'Temperature (keV)', 'Pressure (keV cm$^{-3}$)', 'Entropy (keV cm$^2$)', 'Cooling time (Gyr)', 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']
-    for (i, j) in enumerate(zip(prop, labs)):
-        ax[i//2, i%2].plot(r_kpc[e_ind], j[0][1, e_ind])
-        ax[i//2, i%2].fill_between(r_kpc[e_ind], j[0][0, e_ind], j[0][2, e_ind], color='powderblue')
-        ax[i//2, i%2].set_xlim(xmin, xmax)
-        ax[i//2, i%2].set_xscale('log')
-        ax[i//2, i%2].set_yscale('log')
-        ax[i//2, i%2].set_ylabel(j[1])
-    if temp[1][0] != tempx[1][0]:
-        ax[0,1].plot(r_kpc[e_ind], tempx[1][e_ind]) # add X temperature
-        ax[0,1].fill_between(r_kpc[e_ind], tempx[0, e_ind], tempx[2, e_ind], color='lightgreen', alpha=0.25)
-    ax[0,1].set_yscale('linear')
-    ax[2,0].set_xlabel('Radius (kpc)')
-    ax[2,1].set_xlabel('Radius (kpc)')
-    ax[0,1].yaxis.set_label_position('right')
-    ax[1,1].yaxis.set_label_position('right')
-    ax[2,1].yaxis.set_label_position('right')
-    pdf.savefig(bbox_inches='tight')
-    pdf.close()
-    plt.close()
-    
-def mass_r_delta(r_kpc, cosmo, delta=500):
-    '''
-    Compute the mass profile in terms of the overdensity radius 
-    (overdensity radius = radius within which the average density is Δ times the critical density at the cluster's redshift)
-    ------------------------------------------------------------------------------------------------------------------------
-    r_kpc = radius (kpc)
-    cosmo = Cosmology object
-    delta = overdensity (Δ)
-    ------------------------
-    RETURN: the mass profile
-    '''
-    # H0 (s^-1)
-    H0_s = cosmo.H0/Mpc_km
-    # H(z) (s^-1)
-    HZ = H0_s*np.sqrt(cosmo.WM*(1+cosmo.z)**3+cosmo.WV)
-    # critical density (g cm^-3)
-    rho_c = 3*HZ**2/(8*np.pi*G_cgs)
-    # radius (cm)
-    r_cm = r_kpc*kpc_cm   
-    # M(< r_delta) (g*solar masses)
-    mass_r_delta = 4/3*np.pi*rho_c*delta*r_cm**3/solar_mass_g
-    return mass_r_delta
-
-def m_r_delta(pars, fit, r_kpc, cosmo, delta=500., start_opt=700.):
-    '''
-    Compute the overdensity radius and the overdensity mass 
-    (overdensity radius = radius within which the average density is Δ times the critical density at the cluster's redshift)
-    (overdensity mass = mass enclosed within the overdensity radius)
-    ------------------------------------------------------------------------------------------------------------------------
-    pars = parameter values
-    fit = Fit object
-    r_kpc = radius (kpc)
-    cosmo = Cosmology object
-    delta = overdensity (Δ)
-    start_opt = starting value for optimization (kpc)
-    ---------------------------------------------------------------------
-    RETURN: cumulative mass profile, overdensity radius, overdensity mass
-    '''
-    fit.updateThawed(pars)
-    m_prof = fit.mass_cmpt.mass_fun(fit.pars, r_kpc)
-    r_delta = optimize.newton(lambda r: fit.mass_cmpt.mass_fun(fit.pars, r)-mass_r_delta(r, cosmo, delta), start_opt)
-    m_delta = fit.mass_cmpt.mass_fun(fit.pars, r_delta)
-    return m_prof, r_delta, m_delta
-
-def mass_plot(r_kpc, med_mass, low_mass, hig_mass, med_rd, low_rd, hig_rd, med_md, low_md, hig_md, m_vd, xmin=100, xmax=1000, 
-              ymin=1e11, ymax=1e16, labsize=23, ticksize=20, textsize=23, plotdir='./'):
-    '''
-    Cumulative mass profile plot
-    ----------------------------
-    r_kpc = radius (kpc)
-    med_mass, low_mass, hig_mass = median mass profile with CI boundaries
-    med_rd, low_rd, hig_rd = overdensity radius with CI boundaries
-    med_md, low_md, hig_md = overdensity mass with CI boundaries
-    m_vd = cumulative mass profile in terms of volume and density
-    xmin, xmax = limits on the X-axis
-    ymin, ymax = limits on the Y-axis
-    labsize = label font size
-    ticksize = ticks font size
-    textsize = text font size
-    plotdir = directory where to place the plot
-    '''
-    pdf = PdfPages(plotdir+'mass_hse.pdf')
-    plt.clf()
-    plt.errorbar(r_kpc, med_mass)
-    plt.fill_between(r_kpc, low_mass, hig_mass, color='powderblue')
-    plt.errorbar(r_kpc, m_vd, color='g')
-    plt.vlines([med_rd, low_rd, hig_rd], [0, 0, 0], [med_md, low_md, hig_md], linestyle=['--', ':', ':'], color='black')
-    plt.hlines([med_md, low_md, hig_md], [0, 0, 0], [med_rd, low_rd, hig_rd], linestyle=['--', ':', ':'], color='black')
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.xlim(xmin, xmax)
-    plt.ylim(ymin, ymax)
-    plt.xlabel('Radius (kpc)', fontdict={'fontsize': labsize})
-    plt.ylabel('Total mass (M$_\odot$)', fontdict={'fontsize': labsize})
-    plt.text(xmin-xmin/5, med_md, '$M_{500}$', fontdict={'fontsize': textsize})
-    plt.text(low_rd, ymin-ymin/2, '$r_{500}$', fontdict={'fontsize': textsize})
-    plt.tick_params(labelsize=ticksize, length=5, which='major')
-    plt.tick_params(labelsize=ticksize, length=3, which='minor')
-    pdf.savefig(bbox_inches='tight')
-    pdf.close()
