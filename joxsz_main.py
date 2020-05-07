@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d
 from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
                          CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like,
                          mylikeFromProfs, getLikelihood, mcmc_run)
-from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_profs, mass_plot, 
+from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
 			 frac_gas_prof, frac_gas_plot)
 from types import MethodType
 
