@@ -207,7 +207,7 @@ def main():
     fitwithmod(data, perc_x, perc_sz, ci=ci, plotdir=plotdir)
 
     # Main thermodynamic radial profiles (density, temperature(s), pressure, entropy, cooling time, gas mass)
-    dens, temp, prss, entr, cool, gmss, xtmp = comp_rad_profs(cube_chain, fit, num='all', seed=seed, ci=ci)
+    dens, temp, prss, entr, cool, gmss, xtmp = comp_rad_prof(cube_chain, fit, num='all', seed=seed, ci=ci)
     plot_rad_profs(r_pp, dens, temp, prss, entr, cool, gmss, xtmp, xmin=100., xmax=1000., plotdir=plotdir)
 
     # Cumulative total mass profile
