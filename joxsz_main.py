@@ -191,31 +191,31 @@ def main():
     mcmc.save(chainfilename)
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
-    mysamples = mcmc.sampler.chain # (nwalkers x niter x nparams)
-    flatchain = mysamples.reshape(-1, mysamples.shape[2], order='F') # ((nwalkers x niter) x nparams)
+    cube_chain = mcmc.sampler.chain # (nwalkers x niter x nparams)
+    flat_chain = cube_chain.reshape(-1, cube_chain.shape[2], order='F') # ((nwalkers x niter) x nparams)
     mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
 
     #################
     ### Plots
 
     # Bayesian diagnostics
-    traceplot(mysamples, mcmc_thawed, seed=None, plotdir=plotdir)
-    triangle(flatchain, mcmc_thawed, plotdir=plotdir)
+    traceplot(cube_chain, mcmc_thawed, seed=None, plotdir=plotdir)
+    triangle(flat_chain, mcmc_thawed, plotdir=plotdir)
 
     # Best fitting profiles on SZ and X-ray surface brightness
-    perc_x, perc_sz = best_fit_prof(mysamples, fit, num='all', seed=seed, ci=ci)
+    perc_x, perc_sz = best_fit_prof(cube_chain, fit, num='all', seed=seed, ci=ci)
     fitwithmod(data, perc_x, perc_sz, ci=ci, plotdir=plotdir)
 
     # Radial profiles (density, temperature(s), pressure, entropy, cooling time, gas mass)
-    dens, temp, prss, entr, cool, gmss, xtmp = comp_rad_profs(mysamples, fit, num='all', seed=seed, ci=ci)
+    dens, temp, prss, entr, cool, gmss, xtmp = comp_rad_profs(cube_chain, fit, num='all', seed=seed, ci=ci)
     plot_rad_profs(r_pp, dens, temp, prss, entr, cool, gmss, xtmp, xmin=100., xmax=1000., plotdir=plotdir)
 
     # total mass profile
-    mass_prof, r_delta, m_delta = comp_mass_profs(mysamples, fit, num='all', seed=seed, delta=500, start_opt=1000., ci=ci)
+    mass_prof, r_delta, m_delta = comp_mass_profs(cube_chain, fit, num='all', seed=seed, delta=500, start_opt=1000., ci=ci)
     mass_plot(r_pp, mass_prof, cosmology, delta=500, r_delta=r_delta, m_delta=m_delta, xmin=100., xmax=1500., plotdir=plotdir)
 
     # gas fraction
-    f_gas = frac_gas_prof(mysamples, fit, num='all', seed=seed, ci=ci)
+    f_gas = frac_gas_prof(cube_chain, fit, num='all', seed=seed, ci=ci)
     frac_gas_plot(r_pp, f_gas, ci=ci, plotdir=plotdir)
 
 if __name__ == '__main__':
