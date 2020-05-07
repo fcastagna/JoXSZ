@@ -14,8 +14,8 @@ plt.style.use('classic')
 
 class SZ_data:
     '''
-    Class for SZ data used in PreProFit
-    -----------------------------------
+    Class for the SZ data required for the analysis
+    -----------------------------------------------
     '''
     def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering):
         self.phys_const = phys_const
@@ -51,11 +51,11 @@ def read_beam(filename):
     --------------------------------------------------------------------------------
     '''
     radius, beam_prof = read_xy_err(filename, ncol=2)
-    if np.isnan(beam_prof).sum() > 0:
+    if np.isnan(beam_prof).sum() > 0.:
         first_nan = np.where(np.isnan(beam_prof))[0][0]
         radius = radius[:first_nan]
         beam_prof = beam_prof[:first_nan]
-    if beam_prof.min() < 0:
+    if beam_prof.min() < 0.:
         first_neg = np.where(beam_prof < 0)[0][0]
         radius = radius[:first_neg]
         beam_prof = beam_prof[:first_neg]
@@ -76,16 +76,16 @@ def mybeam(step, maxr_data, approx=False, filename=None, normalize=True, fwhm_be
     '''
     if not approx:
         r_irreg, b = read_beam(filename)
-        f = interp1d(np.append(-r_irreg, r_irreg), np.append(b, b), 'cubic', bounds_error=False, fill_value=(0, 0))
+        f = interp1d(np.append(-r_irreg, r_irreg), np.append(b, b), 'cubic', bounds_error=False, fill_value=(0., 0.))
         inv_f = lambda x: f(x)-f(0)/2
-        fwhm_beam = 2*optimize.newton(inv_f, x0=5) 
+        fwhm_beam = 2*optimize.newton(inv_f, x0=5.) 
     maxr = (maxr_data+3*fwhm_beam)//step*step
-    rad = np.arange(0, maxr+step, step)
+    rad = np.arange(0., maxr+step, step)
     rad = np.append(-rad[:0:-1], rad)
     rad_cut = rad[np.where(abs(rad) <= 3*fwhm_beam)]
     beam_mat = centdistmat(rad_cut)
     if approx:
-        sigma_beam = fwhm_beam/(2*np.sqrt(2*np.log(2)))
+        sigma_beam = fwhm_beam/(2*np.sqrt(2*np.log(2.)))
         beam_2d = norm.pdf(beam_mat, loc=0., scale=sigma_beam)
     else:
         beam_2d = f(beam_mat)
@@ -105,7 +105,7 @@ def centdistmat(r, offset=0.):
     x, y = np.meshgrid(r, r)
     return np.sqrt(x**2+y**2)+offset
 
-def read_tf(filename, approx=False, loc=0, scale=0.02, c=0.95):
+def read_tf(filename, approx=False, loc=0., scale=0.02, c=0.95):
     '''
     Read the transfer function data from the specified file
     -------------------------------------------------------
@@ -174,7 +174,7 @@ def loadBand(infg, inbg, bandE, rmf, arf):
     -------------------------------------
     RETURN: Band object 
     '''
-    data = np.loadtxt(infg %(bandE[0], bandE[1])) # foreground profile
+    data = np.loadtxt(infg % (bandE[0], bandE[1])) # foreground profile
     radii = data[:,0] # radii of centres of annuli in arcmin
     hws = data[:,1] # half-width of annuli in arcmin
     cts = data[:,2] # number of counts (integer)
@@ -185,8 +185,8 @@ def loadBand(infg, inbg, bandE, rmf, arf):
     areascales = areas/geomareas # ratio between real pixel area and geometric area
     band = mb.Band(bandE[0]/1000, bandE[1]/1000, cts, rmf, arf, exps, areascales=areascales)
     backd = np.loadtxt(inbg % (bandE[0], bandE[1])) # background profile
-    band.backrates = backd[0:radii.size, 4] # rates in (cts/s/arcmin^2)
-    lastmyrad = backd[0:radii.size, 0]
+    band.backrates = backd[0:radii.size,4] # rates in (cts/s/arcmin^2)
+    lastmyrad = backd[0:radii.size,0]
     if (abs(lastmyrad[-1]-radii[-1]) > .001):
          raise RuntimeError('Problem while reading bg file', lastmyrad[-1], radii[-1])
     return band
@@ -210,10 +210,10 @@ class CmptPressure(mb.Cmpt):
         r_p = characteristic radius
         '''        
         pars = {
-            'P_0': mb.Param(0.4, minval=0, maxval=20),
-            'a': mb.Param(1.33, minval=0.1, maxval=10),
-            'b': mb.Param(4.13, minval=0.1, maxval=15),
-            'c': mb.Param(0.014, minval=0, maxval=3),
+            'P_0': mb.Param(0.4, minval=0., maxval=20.),
+            'a': mb.Param(1.33, minval=0.1, maxval=10.),
+            'b': mb.Param(4.13, minval=0.1, maxval=15.),
+            'c': mb.Param(0.014, minval=0., maxval=3.),
             'r_p': mb.Param(300., minval=100., maxval=1000.)
             }
         return pars
@@ -261,7 +261,7 @@ class CmptUPPTemperature(mb.Cmpt):
         Default parameter T_ratio = T_X / T_SZ
         --------------------------------------
         '''
-        pars = {'log(T_X/T_{SZ})': mb.Param(0, minval=-1, maxval=1)}
+        pars = {'log(T_X/T_{SZ})': mb.Param(0., minval=-1., maxval=1.)}
         return pars
     
     def temp_fun(self, pars, r_kpc, getT_SZ=False):
@@ -332,17 +332,17 @@ def mydens_defPars(self):
     beta_2 = shape parameter
     '''
     pars = {
-        'log(n_0)': mb.Param(-3, minval=-7, maxval=2),
-        r'\beta': mb.Param(2/3., minval=0., maxval=4.),
+        'log(n_0)': mb.Param(-3., minval=-7., maxval=2.),
+        r'\beta': mb.Param(2/3, minval=0., maxval=4.),
         'log(r_c)': mb.Param(2.3, minval=-1., maxval=3.7),
-        'log(r_s)': mb.Param(2.7, minval=0, maxval=3.7),
-        r'\alpha': mb.Param(0., minval=-1, maxval=2.),
+        'log(r_s)': mb.Param(2.7, minval=0., maxval=3.7),
+        r'\alpha': mb.Param(0., minval=-1., maxval=2.),
         r'\epsilon': mb.Param(3., minval=0., maxval=5.),
-        r'\gamma': mb.Param(3., minval=0., maxval=10, frozen=True),
+        r'\gamma': mb.Param(3., minval=0., maxval=10., frozen=True),
         }
     if self.mode == 'double':
         pars.update({
-            'log(n_{02})': mb.Param(-1, minval=-7, maxval=2),
+            'log(n_{02})': mb.Param(-1., minval=-7., maxval=2.),
             r'\beta_2': mb.Param(0.5, minval=0., maxval=4.),
             'log(r_{c2})': mb.Param(1.7, minval=-1., maxval=3.7),
             })
@@ -380,7 +380,7 @@ def mydens_prior(self, pars):
     r_s = 10**pars['log(r_s)'].val
     if r_c > r_s:
         return -np.inf
-    return 0
+    return 0.
 
 def get_sz_like(self, output='ll'):
     '''
@@ -401,7 +401,7 @@ def get_sz_like(self, output='ll'):
     # Compton parameter
     y = (kpc_cm*self.data.sz.phys_const[1]/self.data.sz.phys_const[0]*ab)
     f = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
-                 np.append(y, y), 'cubic', bounds_error=False, fill_value=(0, 0))
+                 np.append(y, y), 'cubic', bounds_error=False, fill_value=(0., 0.))
     # Compton parameter 2D image
     y_2d = f(self.data.sz.d_mat) 
     # Convolution with the beam
@@ -459,7 +459,7 @@ def getLikelihood(self, vals=None):
     # exclude unphysical mass profiles
     if self.exclude_unphy_mass:
         m_prof = self.mass_cmpt.mass_fun(self.pars, self.data.sz.r_pp) 
-        if not(all(np.gradient(m_prof, 1) > 0)):
+        if not(all(np.gradient(m_prof, 1) > 0.)):
             return -np.inf
     # X-ray fitted profiles
     profs = self.calcProfiles()
