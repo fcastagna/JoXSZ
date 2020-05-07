@@ -93,7 +93,7 @@ def main():
     maxr_data = flux_data[0][-1] # highest radius in the data
     beam_2d, fwhm = mybeam(mystep, maxr_data, approx=beam_approx, filename=beam_filename, normalize=True, fwhm_beam=fwhm_beam)
     mymaxr = (maxr_data+3*fwhm)//mystep*mystep # max radius needed (arcsec)
-    radius = np.arange(0, mymaxr+mystep, mystep) # array of radii in arcsec
+    radius = np.arange(0., mymaxr+mystep, mystep) # array of radii in arcsec
     radius = np.append(-radius[:0:-1], radius) # from positive to entire axis
     sep = radius.size//2 # index of radius 0
     r_pp = np.arange(mystep*kpc_as, R_b+mystep*kpc_as, mystep*kpc_as) # radius in kpc used to compute the pressure profile
@@ -121,7 +121,7 @@ def main():
     data.sz = sz_data # add SZ data
 
     # flat metallicity profile
-    Z_cmpt = mb.CmptFlat('Z', annuli, defval=Z_solar, minval=0, maxval=1)
+    Z_cmpt = mb.CmptFlat('Z', annuli, defval=Z_solar, minval=0., maxval=1.)
 
     # density profile
     ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
@@ -145,8 +145,8 @@ def main():
     pars.update(press_cmpt.defPars())
 
     # add parameter which allows variation of background with a Gaussian prior with sigma = 0.1
-    pars['backscale'] = mb.ParamGaussian(1., prior_mu=1, prior_sigma=0.1)
-    pars['calibration'] = mb.ParamGaussian(1., prior_mu=1, prior_sigma=0.07)
+    pars['backscale'] = mb.ParamGaussian(1., prior_mu=1., prior_sigma=0.1)
+    pars['calibration'] = mb.ParamGaussian(1., prior_mu=1., prior_sigma=0.07)
 
     # stop radii going beyond edge of data
     pars['log(r_c)'].maxval = annuli.edges_logkpc[-2]
@@ -156,7 +156,7 @@ def main():
     pars[r'\gamma'].val = 3.
     pars[r'\gamma'].frozen = True
     pars['log(r_c)'].val = 2.
-    pars[r'\epsilon'].maxval = 10
+    pars[r'\epsilon'].maxval = 10.
     pars[r'\alpha'].val = 0.
     pars[r'\alpha'].frozen = True
 
