@@ -261,7 +261,8 @@ def plot_rad_profs(r_kpc, dens, temp, prss, entr, cool, gmss, tempx, xmin=np.nan
     ind = np.where((r_kpc > xmin) & (r_kpc < xmax))
     e_ind = np.concatenate(([ind[0][0]-1], ind[0], [ind[0][-1]+1]), axis=0)
     prop = [dens, temp, prss, entr, cool/1e9, gmss/1e12]
-    labs = ['Density (cm$^{-3}$)', 'Temperature (keV)', 'Pressure (keV cm$^{-3}$)', 'Entropy (keV cm$^2$)', 'Cooling time (Gyr)', 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']
+    labs = ['Density (cm$^{-3}$)', 'Temperature (keV)', 'Pressure (keV cm$^{-3}$)', 'Entropy (keV cm$^2$)', 
+            'Cooling time (Gyr)', 'Gas mass $(10^{12}\,\mathrm{M}_\Theta)$']
     for (i, j) in enumerate(zip(prop, labs)):
         ax[i//2,i%2].plot(r_kpc[e_ind], j[0][1,e_ind])
         ax[i//2,i%2].fill_between(r_kpc[e_ind], j[0][0,e_ind], j[0][2,e_ind], color='powderblue')
