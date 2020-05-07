@@ -68,9 +68,9 @@ def mybeam(step, maxr_data, approx=False, filename=None, normalize=True, fwhm_be
     --------------------------------------------------------------------------------------------------------
     step = binning step
     maxr_data = highest radius in the data
-    approx = whether to approximate or not the beam to the normal distribution (True/False)
+    approx = whether to approximate or not the beam to the normal distribution (boolean, default is False)
     filename = name of the file including the beam data
-    normalize = whether to normalize or not the output 2D image (True/False)
+    normalize = whether to normalize or not the output 2D image (boolean, default is True)
     fwhm_beam = Full Width at Half Maximum
     -------------------------------------------------------------------
     RETURN: the 2D image of the beam and his Full Width at Half Maximum
@@ -110,7 +110,7 @@ def read_tf(filename, approx=False, loc=0., scale=0.02, c=0.95):
     '''
     Read the transfer function data from the specified file
     -------------------------------------------------------
-    approx = whether to approximate or not the tf to the normal cdf (True/False)
+    approx = whether to approximate or not the tf to the normal cdf (boolean, default is False)
     loc, scale, c = location, scale and normalization parameters for the normal cdf approximation
     ---------------------------------------------------------------------------------------------
     RETURN: the vectors of wave numbers and transmission values
@@ -270,7 +270,7 @@ class CmptUPPTemperature(mb.Cmpt):
         Compute the temperature profile (X-ray by default, SZ alternatively).
         Please note that T_X = T_SZ if log(T_ratio) is not fitted but fixed to 0!
         -------------------------------------------------------------------------
-        getT_SZ = whether to return T_SZ (True/False, default is False)
+        getT_SZ = whether to return T_SZ (boolean, default is False)
         '''
         pr = self.press_prof.press_fun(pars, r_kpc)
         ne = self.ne_prof.vikhFunction(pars, r_kpc)
@@ -489,8 +489,8 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
     nburn = number of burn-in iterations
     nsteps = number of iterations after burn-in
     nthin = thinning
-    comp_time = shows the computation time (True/False, default is True)
-    autorefit = refit position if new minimum is found during burn in (True/False, default is True)
+    comp_time = shows the computation time (boolean, default is True)
+    autorefit = refit position if new minimum is found during burn in (boolean, default is True)
     minfrac = minimum fraction of burn in to do if new minimum found
     minimprove = minimum improvement in fit statistic to do a new fit
     '''
