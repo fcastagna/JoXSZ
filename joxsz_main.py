@@ -206,15 +206,15 @@ def main():
     perc_x, perc_sz = best_fit_prof(cube_chain, fit, num='all', seed=seed, ci=ci)
     fitwithmod(data, perc_x, perc_sz, ci=ci, plotdir=plotdir)
 
-    # Radial profiles (density, temperature(s), pressure, entropy, cooling time, gas mass)
+    # Main thermodynamic radial profiles (density, temperature(s), pressure, entropy, cooling time, gas mass)
     dens, temp, prss, entr, cool, gmss, xtmp = comp_rad_profs(cube_chain, fit, num='all', seed=seed, ci=ci)
     plot_rad_profs(r_pp, dens, temp, prss, entr, cool, gmss, xtmp, xmin=100., xmax=1000., plotdir=plotdir)
 
-    # total mass profile
+    # Cumulative total mass profile
     mass_prof, r_delta, m_delta = comp_mass_profs(cube_chain, fit, num='all', seed=seed, delta=500, start_opt=1000., ci=ci)
     mass_plot(r_pp, mass_prof, cosmology, delta=500, r_delta=r_delta, m_delta=m_delta, xmin=100., xmax=1500., plotdir=plotdir)
 
-    # gas fraction
+    # Gas fraction profile
     f_gas = frac_gas_prof(cube_chain, fit, num='all', seed=seed, ci=ci)
     frac_gas_plot(r_pp, f_gas, ci=ci, plotdir=plotdir)
 
