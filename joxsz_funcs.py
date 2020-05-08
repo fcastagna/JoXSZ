@@ -638,7 +638,7 @@ def mcmc_run(mcmc, chainfilename, backend, nburn, nsteps, nthin=1):
     for res in mcmc.sampler.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
         pass
     mcmc.save(chainfilename)
-    backend.reset(nwalkers, len(fit.thawedParVals()))
+    backend.reset(mcmc.walkers, len(mcmc.fit.thawedParVals()))
     # Read last value of burn-in as starting value of the chain
     p1 = h5py.File(chainfilename, 'r')['chain'][:,-1,:]
     print('Starting sampling')
