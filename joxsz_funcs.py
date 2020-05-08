@@ -549,7 +549,7 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
 class MCMC:
     """For running Markov Chain Monte Carlo."""
 
-    def __init__(self, fit, pool, backend, walkers=100, processes=1, initspread=0.01):
+    def __init__(self, emcee, fit, pool, backend, walkers=100, processes=1, initspread=0.01):
         '''
         :param Fit fit: Fit object to use for mcmc
         :param int walkers: number of emcee walkers to use
@@ -564,7 +564,7 @@ class MCMC:
         # function for getting likelihood
         likefunc = fit.getLikelihood
         # for doing the mcmc sampling
-        self.sampler = mc.EnsembleSampler(walkers, len(fit.thawed), likefunc, pool=pool, backend=backend)
+        self.sampler = emcee.EnsembleSampler(walkers, len(fit.thawed), likefunc, pool=pool, backend=backend)
         # starting point
         self.pos0 = None
         # header items to write to output file
