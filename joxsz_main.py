@@ -13,6 +13,8 @@ from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, fil
 from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
 			 frac_gas_prof, frac_gas_plot)
 from types import MethodType
+import emcee as mc
+from multiprocessing import Pool
 
 #################
 ## Global and local variables
@@ -183,16 +185,16 @@ def main():
     with open('%s%s_fit.pickle' % (savedir, name), 'wb') as f:
         pickle.dump(fit, f, -1)
 
-    # construct MCMC object and do burn in
-    mcmc = mb.MCMC(fit, walkers=nwalkers, processes=nthreads)
-    chainfilename = '%s%s_chain.hdf5' % (savedir, name)
-    # run mcmc proper and save the chain
-    mcmc_run(mcmc, nburn, nsteps=nlength, nthin=nthin)
-    mcmc.save(chainfilename)
+    backend = mc.backends.HDFBackend('./newtest.h5')
+    backend.reset(nwalkers, len(fit.thawedParVals()))
+    chainfilename = '%s%s_newchain.hdf5' % (savedir, name)
+    with Pool() as pool:
+        mcmc = MCMC(fit, pool=pool, walkers=nwalkers, backend=backend)
+	mcmc_run(mcmc, chainfilename, nburn, nlength, nthin)
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
-    cube_chain = mcmc.sampler.chain # (nwalkers x niter x nparams)
-    flat_chain = cube_chain.reshape(-1, cube_chain.shape[2], order='F') # ((nwalkers x niter) x nparams)
+    cube_chain = mcmc.sampler.get_chain(discard=int(nburn/nthin))
+    flat_chain = mcmc.sampler.get_chain(discard=int(nburn/nthin), flat=True)
     mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
 
     #################
