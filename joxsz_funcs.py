@@ -486,66 +486,6 @@ def getLikelihood(self, vals=None):
                 mb.utils.uprint("%s = %s" % (p, self.pars[p]), file=fout)
     return totlike
 
-def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfrac=0.2, minimprove=0.01):
-    '''
-    MCMC execution. Adapted from MBProj2
-    ------------------------------------
-    mcmc = 
-    nburn = number of burn-in iterations
-    nsteps = number of iterations after burn-in
-    nthin = thinning
-    comp_time = shows the computation time (boolean, default is True)
-    autorefit = refit position if new minimum is found during burn in (boolean, default is True)
-    minfrac = minimum fraction of burn in to do if new minimum found
-    minimprove = minimum improvement in fit statistic to do a new fit
-    '''
-    def innerburn():
-        '''
-        Return False if new minimum found and autorefit is set. Adapted from MBProj2
-        ----------------------------------------------------------------------------
-        '''
-        bestfit = None
-        bestprob = initprob = mcmc.fit.getLikelihood(mcmc.fit.thawedParVals())
-        p0 = mcmc._generateInitPars()
-        mcmc.header['burn'] = nburn
-        for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nburn, storechain=False)):
-            if i%10 == 0:
-                print(' Burn %i / %i (%.1f%%)' %(i, nburn, i*100/nburn))
-            mcmc.pos0, lnprob, rstate0 = result[:3]
-            if lnprob.max()-bestprob > minimprove:
-                bestprob = lnprob.max()
-                maxidx = lnprob.argmax()
-                bestfit = mcmc.pos0[maxidx]
-            if (autorefit and i > nburn*minfrac and bestfit is not None ):
-                print('Restarting burn as new best fit has been found (%g > %g)' % (bestprob, initprob))
-                mcmc.fit.updateThawed(bestfit)
-                mcmc.sampler.reset()
-                return False
-        mcmc.sampler.reset()
-        return True
-    time0 = time.time()
-    print('Starting burn-in')
-    while not innerburn():
-        print('Restarting, as new mininimum found')
-        mcmc.fit.doFitting()
-    print('Finished burn-in')
-    mcmc.header['length'] = nsteps
-    if mcmc.pos0 is None:
-        print(' Generating initial parameters')
-        p0 = mcmc._generateInitPars()
-    else:
-        print(' Starting from end of burn-in position')
-        p0 = mcmc.pos0
-    for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nsteps)):
-        if i%10 == 0:
-            print(' Sampling %i / %i (%.1f%%)' %(i, nsteps, i*100/nsteps))
-    print('Finished sampling')
-    time1 = time.time()
-    if comp_time:
-        h, rem = divmod(time1-time0, 3600)
-        print('Computation time: '+str(int(h))+'h '+str(int(rem//60))+'m')
-    print('Acceptance fraction: %s' %np.mean(mcmc.sampler.acceptance_fraction))
-
 class MCMC:
     """For running Markov Chain Monte Carlo."""
 
