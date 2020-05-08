@@ -644,3 +644,4 @@ def mcmc_run(mcmc, chainfilename, nburn, nsteps, nthin=1):
     print('Starting sampling')
     for res in mcmc.sampler.sample(p1, thin=nthin, iterations=nsteps, progress=True):
         pass
+    mcmc.save(chainfilename)
