@@ -190,7 +190,7 @@ def main():
     backend.reset(nwalkers, len(fit.thawedParVals()))
     chainfilename = '%s%s_newchain.hdf5' % (savedir, name)
     with Pool() as pool:
-        mcmc = MCMC(fit, pool=pool, walkers=nwalkers, backend=backend)
+        mcmc = MCMC(mc, fit, pool=pool, walkers=nwalkers, backend=backend)
         mcmc_run(mcmc, chainfilename, nburn, nlength, nthin)
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
