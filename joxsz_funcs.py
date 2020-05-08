@@ -619,7 +619,7 @@ class MCMC:
             f['lastpos'] = self.sampler.chain[:, -1, :].astype(np.float32)
         print('Done')
 
-def mcmc_run(mcmc, chainfilename, nburn, nsteps, nthin=1):
+def mcmc_run(mcmc, chainfilename, backend, nburn, nsteps, nthin=1):
     '''
     '''
     bestprob = mcmc.fit.getLikelihood(mcmc.fit.thawedParVals())
