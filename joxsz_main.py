@@ -7,7 +7,7 @@ import six.moves.cPickle as pickle
 import numpy as np
 import mbproj2 as mb
 from scipy.interpolate import interp1d
-from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
+from joxsz_funcs import (check_emcee, SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
                          CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like,
                          mylikeFromProfs, getLikelihood, mcmc_run)
 from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
@@ -15,6 +15,7 @@ from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_ra
 from types import MethodType
 import emcee as mc
 from multiprocessing import Pool
+check_emcee(mc)
 
 #################
 ## Global and local variables
