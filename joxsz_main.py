@@ -191,7 +191,7 @@ def main():
     chainfilename = '%s%s_newchain.hdf5' % (savedir, name)
     with Pool() as pool:
         mcmc = MCMC(mc, fit, pool=pool, walkers=nwalkers, backend=backend)
-        mcmc_run(mcmc, chainfilename, nburn, nlength, nthin)
+        mcmc_run(mcmc, chainfilename, backend, nburn, nlength, nthin)
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
     cube_chain = mcmc.sampler.get_chain(discard=int(nburn/nthin))
