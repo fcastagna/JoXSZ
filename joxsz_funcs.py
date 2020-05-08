@@ -9,9 +9,14 @@ from scipy.interpolate import interp1d
 from scipy.signal import fftconvolve
 from scipy.fftpack import fft2, ifft2
 import matplotlib.pyplot as plt
-import time
+import h5py
 
 plt.style.use('classic')
+
+def check_emcee(emcee):
+    vers = emcee.__version__
+    if int(vers[0]) < 3:
+        raise RuntimeError('Emcee 3 version is required. Please update the package')
 
 class SZ_data:
     '''
@@ -540,3 +545,102 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
         h, rem = divmod(time1-time0, 3600)
         print('Computation time: '+str(int(h))+'h '+str(int(rem//60))+'m')
     print('Acceptance fraction: %s' %np.mean(mcmc.sampler.acceptance_fraction))
+
+class MCMC:
+    """For running Markov Chain Monte Carlo."""
+
+    def __init__(self, fit, pool, backend, walkers=100, processes=1, initspread=0.01):
+        '''
+        :param Fit fit: Fit object to use for mcmc
+        :param int walkers: number of emcee walkers to use
+        :param int processes: number of simultaneous processes to compute likelihoods
+        :param float initspread: random Gaussian width added to create initial parameters
+        '''
+        self.fit = fit
+        self.pool = pool
+        self.walkers = walkers
+        self.numpars = len(fit.thawed)
+        self.initspread = initspread
+        # function for getting likelihood
+        likefunc = fit.getLikelihood
+        # for doing the mcmc sampling
+        self.sampler = mc.EnsembleSampler(walkers, len(fit.thawed), likefunc, pool=pool, backend=backend)
+        # starting point
+        self.pos0 = None
+        # header items to write to output file
+        self.header = {
+            'burn': 0,
+            }
+
+    def _generateInitPars(self):
+        """Generate initial set of parameters from fit."""
+        thawedpars = np.array(self.fit.thawedParVals())
+        assert np.all(np.isfinite(thawedpars))
+        # create enough parameters with finite likelihoods
+        p0 = []
+        while len(p0) < self.walkers:
+            p = np.random.normal(0, self.initspread, size=self.numpars) + thawedpars
+            if np.isfinite(self.fit.getLikelihood(p)):
+                p0.append(p)
+        return p0
+
+    def innerburn(self, nburn, nthin, autorefit=True, minfrac=0.2, minimprove=0.01):
+        p0 = self._generateInitPars()
+        self.header['burn'] = nburn
+        for i, result in enumerate(self.sampler.sample(p0, thin=nthin, iterations=nburn, progress=True, store=False)):
+            pass
+        self.sampler.reset()
+        return True
+
+    def save(self, outfilename, thin=1):
+        """Save chain to HDF5 file.
+        :param str outfilename: output hdf5 filename
+        :param int thin: save every N samples from chain
+        """
+        self.header['thin'] = thin
+        print('Saving chain to', outfilename)
+        with h5py.File(outfilename, 'w') as f:
+            # write header entries
+            for h in sorted(self.header):
+                f.attrs[h] = self.header[h]
+            # write list of parameters which are thawed
+            f['thawed_params'] = [x.encode('utf-8') for x in self.fit.thawed]
+            # output chain
+            f.create_dataset('chain',
+                data=self.sampler.chain[:, ::thin, :].astype(np.float32),
+                compression=True, shuffle=True)
+            # likelihoods for each walker, iteration
+            f.create_dataset('likelihood',
+                data=self.sampler.lnprobability[:, ::thin].astype(np.float32),
+                compression=True, shuffle=True)
+            # acceptance fraction
+            f['acceptfrac'] = self.sampler.acceptance_fraction.astype(np.float32)
+            # last position in chain
+            f['lastpos'] = self.sampler.chain[:, -1, :].astype(np.float32)
+        print('Done')
+
+def mcmc_run(mcmc, chainfilename, nburn, nsteps, nthin=1):
+    '''
+    '''
+    bestprob = mcmc.fit.getLikelihood(mcmc.fit.thawedParVals())
+    newlike = bestprob
+    p0 = mcmc._generateInitPars()
+    print('Preliminary fit (1000 iterations) to improve likelihood')
+    while newlike >= bestprob:
+        bestprob = newlike
+        # 1000 iterations, save only 2
+        for res in mcmc.sampler.sample(p0, thin=500, iterations=1000, progress=True):
+            pass
+        mcmc.save(chainfilename)
+        # Read best likelihood
+        newlike = h5py.File(chainfilename, 'r')['likelihood'][:,-1].max()
+    print('Burn-in period')
+    for res in mcmc.sampler.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
+        pass
+    mcmc.save(chainfilename)
+    backend.reset(nwalkers, len(fit.thawedParVals()))
+    # Read last value of burn-in as starting value of the chain
+    p1 = h5py.File(chainfilename, 'r')['chain'][:,-1,:]
+    print('Starting sampling')
+    for res in mcmc.sampler.sample(p1, thin=nthin, iterations=nsteps, progress=True):
+        pass
