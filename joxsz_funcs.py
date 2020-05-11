@@ -465,7 +465,10 @@ def getLikelihood(self, vals=None):
     # X-ray fitted profiles
     profs = self.calcProfiles()
     # X-ray log-likelihood
-    like = self.mylikeFromProfs(profs)
+    if np.array(profs).min() > 0:
+        like = self.mylikeFromProfs(profs)
+    else:
+        like = -np.inf
     # SZ log-likelihood
     sz_like = self.get_sz_like()
     # prior on parameters 
