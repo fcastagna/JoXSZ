@@ -488,7 +488,7 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
     '''
     MCMC execution. Adapted from MBProj2
     ------------------------------------
-    mcmc = 
+    mcmc = MCMC object (adapted from MBProj2)
     nburn = number of burn-in iterations
     nsteps = number of iterations after burn-in
     nthin = thinning
