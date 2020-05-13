@@ -16,7 +16,7 @@ plt.style.use('classic')
 def check_emcee(emcee):
     vers = emcee.__version__
     if int(vers[0]) < 3:
-        raise RuntimeError('Emcee 3 version is required. Please update the package')
+        raise ImportError('Emcee 3 version is required. Please update the package')
 
 class SZ_data:
     '''
