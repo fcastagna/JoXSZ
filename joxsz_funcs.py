@@ -490,80 +490,52 @@ def getLikelihood(self, vals=None):
     return totlike
 
 class MCMC:
-    """For running Markov Chain Monte Carlo."""
-
-    def __init__(self, emcee, fit, pool, backend, walkers=100, processes=1, initspread=0.01):
-        '''
-        :param Fit fit: Fit object to use for mcmc
-        :param int walkers: number of emcee walkers to use
-        :param int processes: number of simultaneous processes to compute likelihoods
-        :param float initspread: random Gaussian width added to create initial parameters
-        '''
+    '''
+    Class for running Markov Chain Monte Carlo
+    ------------------------------------------
+    emcee = emcee package
+    fit = Fit object (adapted from MBProj2)
+    pool = pool object for operating on multiple processes
+    backend = backend file for saving the chain
+    walkers = number of random walkers
+    seed = random seed (default is None)
+    initspread = random Gaussian width added to create initial parameters
+    '''
+    def __init__(self, emcee, fit, pool, backend, walkers=100, seed=None, initspread=0.01):
         self.fit = fit
-        self.pool = pool
         self.walkers = walkers
         self.numpars = len(fit.thawed)
+        self.seed = seed
         self.initspread = initspread
         # function for getting likelihood
         likefunc = fit.getLikelihood
         # for doing the mcmc sampling
         self.sampler = emcee.EnsembleSampler(walkers, len(fit.thawed), likefunc, pool=pool, backend=backend)
-        # starting point
-        self.pos0 = None
-        # header items to write to output file
-        self.header = {
-            'burn': 0,
-            }
 
     def _generateInitPars(self):
-        """Generate initial set of parameters from fit."""
+        '''
+        Generate initial set of parameters from fit
+        -------------------------------------------
+        '''
         thawedpars = np.array(self.fit.thawedParVals())
         assert np.all(np.isfinite(thawedpars))
         # create enough parameters with finite likelihoods
         p0 = []
         while len(p0) < self.walkers:
-            p = np.random.normal(0, self.initspread, size=self.numpars) + thawedpars
+            np.random.seed(self.seed)
+            p = np.random.normal(0, self.initspread, size=self.numpars)+thawedpars
             if np.isfinite(self.fit.getLikelihood(p)):
                 p0.append(p)
         return p0
 
-    def innerburn(self, nburn, nthin, autorefit=True, minfrac=0.2, minimprove=0.01):
-        p0 = self._generateInitPars()
-        self.header['burn'] = nburn
-        for i, result in enumerate(self.sampler.sample(p0, thin=nthin, iterations=nburn, progress=True, store=False)):
-            pass
-        self.sampler.reset()
-        return True
-
-    def save(self, outfilename, thin=1):
-        """Save chain to HDF5 file.
-        :param str outfilename: output hdf5 filename
-        :param int thin: save every N samples from chain
-        """
-        self.header['thin'] = thin
-        print('Saving chain to', outfilename)
-        with h5py.File(outfilename, 'w') as f:
-            # write header entries
-            for h in sorted(self.header):
-                f.attrs[h] = self.header[h]
-            # write list of parameters which are thawed
-            f['thawed_params'] = [x.encode('utf-8') for x in self.fit.thawed]
-            # output chain
-            f.create_dataset('chain',
-                data=self.sampler.chain[:, ::thin, :].astype(np.float32),
-                compression=True, shuffle=True)
-            # likelihoods for each walker, iteration
-            f.create_dataset('likelihood',
-                data=self.sampler.lnprobability[:, ::thin].astype(np.float32),
-                compression=True, shuffle=True)
-            # acceptance fraction
-            f['acceptfrac'] = self.sampler.acceptance_fraction.astype(np.float32)
-            # last position in chain
-            f['lastpos'] = self.sampler.chain[:, -1, :].astype(np.float32)
-        print('Done')
-
-def mcmc_run(mcmc, chainfilename, backend, nburn, nsteps, nthin=1):
+def mcmc_run(mcmc, nburn, nsteps, nthin=1):
     '''
+    MCMC execution
+    --------------
+    mcmc = MCMC object
+    nburn = number of burn-in iterations
+    nsteps = number of chain iterations (after burn-in)
+    nthin = thinning
     '''
     bestprob = mcmc.fit.getLikelihood(mcmc.fit.thawedParVals())
     newlike = bestprob
@@ -574,17 +546,31 @@ def mcmc_run(mcmc, chainfilename, backend, nburn, nsteps, nthin=1):
         # 1000 iterations, save only 2
         for res in mcmc.sampler.sample(p0, thin=500, iterations=1000, progress=True):
             pass
-        mcmc.save(chainfilename)
         # Read best likelihood
-        newlike = h5py.File(chainfilename, 'r')['likelihood'][:,-1].max()
+        newlike = mcmc.sampler.backend.get_log_prob()[-1,:].max()
+        p0 = mcmc.sampler.backend.get_chain()[-1,:,:]
+        mcmc.sampler.backend.reset(mcmc.walkers, len(mcmc.fit.thawedParVals()))
     print('Burn-in period')
     for res in mcmc.sampler.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
         pass
-    mcmc.save(chainfilename)
-    backend.reset(mcmc.walkers, len(mcmc.fit.thawedParVals()))
     # Read last value of burn-in as starting value of the chain
-    p1 = h5py.File(chainfilename, 'r')['chain'][:,-1,:]
+    p1 = mcmc.sampler.backend.get_chain()[-1,:,:]
+    mcmc.sampler.backend.reset(mcmc.walkers, len(mcmc.fit.thawedParVals()))
     print('Starting sampling')
     for res in mcmc.sampler.sample(p1, thin=nthin, iterations=nsteps, progress=True):
         pass
-    mcmc.save(chainfilename)
+
+def add_backend_attrs(chainfilename, fit, nburn, nthin):
+    '''
+    Add some useful attributes to the backend file, which can be retrieved from a saved file
+    ----------------------------------------------------------------------------------------
+    chainfilename = name of the file containing the chain
+    fit = Fit object (adapted from MBProj2)
+    nburn = number of burn-in iterations
+    nthin = thinning
+    '''
+    f = h5py.File(chainfilename, 'r+')
+    f['mcmc'].attrs['param_names'] = np.array([k.encode('utf-8') for k in fit.thawed])
+    f['mcmc'].attrs['burn'] = nburn
+    f['mcmc'].attrs['thin'] = nthin
+    f.close()
