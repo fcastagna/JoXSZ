@@ -521,8 +521,11 @@ class MCMC:
         assert np.all(np.isfinite(thawedpars))
         # create enough parameters with finite likelihoods
         p0 = []
+        _ = 0
         while len(p0) < self.walkers:
-            np.random.seed(self.seed)
+            if self.seed is not None:
+                _ =+1
+                np.random.seed(self.seed*_)
             p = np.random.normal(0, self.initspread, size=self.numpars)+thawedpars
             if np.isfinite(self.fit.getLikelihood(p)):
                 p0.append(p)
