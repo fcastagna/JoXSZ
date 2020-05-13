@@ -9,7 +9,7 @@ import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (check_emcee, SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
                          CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like,
-                         mylikeFromProfs, getLikelihood, MCMC, mcmc_run)
+                         mylikeFromProfs, getLikelihood, MCMC, mcmc_run, add_backend_attrs)
 from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
 			 frac_gas_prof, frac_gas_plot)
 from types import MethodType
@@ -75,11 +75,11 @@ savedir = './' # directory for saved files
 ci = 95
 
 # MCMC parameters
-nburn = 2000 # number of burn-in iteration
+nburn = 2000 # number of burn-in iterations
 nlength = 5000 # number of chain iterations (after burn-in)
 nwalkers = 30 # number of random walkers
 nthreads = 8 # number of processes/threads
-nthin = 5 # thinning 
+nthin = 5 # thinning
 seed = 123 # random seed
 
 # whether to exclude unphysical masses from fit
@@ -185,13 +185,15 @@ def main():
     # save best fit
     with open('%s%s_fit.pickle' % (savedir, name), 'wb') as f:
         pickle.dump(fit, f, -1)
-
-    backend = mc.backends.HDFBackend('./newtest.h5')
-    backend.reset(nwalkers, len(fit.thawedParVals()))
+    #
     chainfilename = '%s%s_newchain.hdf5' % (savedir, name)
+    backend = mc.backends.HDFBackend(chainfilename)
+    backend.reset(nwalkers, len(fit.thawedParVals()))
+
     with Pool() as pool:
-        mcmc = MCMC(mc, fit, pool=pool, walkers=nwalkers, backend=backend)
-        mcmc_run(mcmc, chainfilename, backend, nburn, nlength, nthin)
+        mcmc = MCMC(mc, fit, pool=pool, walkers=nwalkers, backend=backend, seed=seed, initspread=.5)
+        mcmc_run(mcmc, nburn, nlength, nthin)
+        add_backend_attrs(chainfilename, fit, nburn, nthin)
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
     cube_chain = mcmc.sampler.get_chain(discard=int(nburn/nthin))
