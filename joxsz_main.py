@@ -72,11 +72,11 @@ savedir = './' # directory for saved files
 ci = 95
 
 # MCMC parameters
-nburn = 2000 # number of burn-in iteration
+nburn = 2000 # number of burn-in iterations
 nlength = 5000 # number of chain iterations (after burn-in)
 nwalkers = 30 # number of random walkers
 nthreads = 8 # number of processes/threads
-nthin = 5 # thinning 
+nthin = 5 # thinning
 seed = 123 # random seed
 
 # whether to exclude unphysical masses from fit
