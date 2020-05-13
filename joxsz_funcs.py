@@ -524,7 +524,7 @@ class MCMC:
         _ = 0
         while len(p0) < self.walkers:
             if self.seed is not None:
-                _ =+1
+                _ += 1
                 np.random.seed(self.seed*_)
             p = np.random.normal(0, self.initspread, size=self.numpars)+thawedpars
             if np.isfinite(self.fit.getLikelihood(p)):
