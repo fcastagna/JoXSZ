@@ -18,25 +18,6 @@ def check_emcee(emcee):
     if int(vers[0]) < 3:
         raise ImportError('Emcee 3 version is required. Please update the package')
 
-class SZ_data:
-    '''
-    Class for the SZ data required for the analysis
-    -----------------------------------------------
-    '''
-    def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering):
-        self.phys_const = phys_const
-        self.step = step
-        self.kpc_as = kpc_as
-        self.convert = convert
-        self.flux_data = flux_data
-        self.beam_2d = beam_2d
-        self.radius = radius
-        self.sep = sep
-        self.r_pp = r_pp
-        self.ub = ub
-        self.d_mat = d_mat
-        self.filtering = filtering
-
 def read_xy_err(filename, ncol):
     '''
     Read the data from FITS or ASCII file
@@ -155,6 +136,37 @@ def filt_image(wn_as, tf, side, step):
     karr /= karr.max()
     karr *= kmax
     return f(karr)
+
+class SZ_data:
+    '''
+    Class for the SZ data required for the analysis
+    -----------------------------------------------
+    phys_const = physical constants required (electron rest mass - keV, Thomson cross section - cm^2)
+    step = binning step
+    kpc_as = number of kpc per arcsec
+    convert = interpolation function for the temperature-dependent conversion Compton to mJy
+    flux_data = radius (arcsec), flux density, statistical error
+    beam_2d = 2D image of the beam
+    radius = array of radii in arcsec
+    sep = index of radius 0
+    r_pp = radius in kpc used to compute the pressure profile
+    ub = upper bound of r_pp used for convolution (ub=sep unless r_pp.size < sep)
+    d_mat = matrix of distances in kpc centered on 0 with step=mystep
+    filtering = transfer function matrix
+    '''
+    def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering):
+        self.phys_const = phys_const
+        self.step = step
+        self.kpc_as = kpc_as
+        self.convert = convert
+        self.flux_data = flux_data
+        self.beam_2d = beam_2d
+        self.radius = radius
+        self.sep = sep
+        self.r_pp = r_pp
+        self.ub = ub
+        self.d_mat = d_mat
+        self.filtering = filtering
 
 def getEdges(infg, bands):
     '''
