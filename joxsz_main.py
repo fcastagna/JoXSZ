@@ -78,7 +78,6 @@ ci = 95
 nburn = 2000 # number of burn-in iterations
 nlength = 5000 # number of chain iterations (after burn-in)
 nwalkers = 30 # number of random walkers
-nthreads = 8 # number of processes/threads
 nthin = 5 # thinning
 seed = None # random seed
 
