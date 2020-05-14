@@ -185,7 +185,7 @@ def main():
     with open('%s%s_fit.pickle' % (savedir, name), 'wb') as f:
         pickle.dump(fit, f, -1)
     #
-    chainfilename = '%s%s_newchain.hdf5' % (savedir, name)
+    chainfilename = '%s%s_chain.hdf5' % (savedir, name)
     backend = mc.backends.HDFBackend(chainfilename)
     backend.reset(nwalkers, len(fit.thawedParVals()))
 
