@@ -195,8 +195,8 @@ def main():
         add_backend_attrs(chainfilename, fit, nburn, nthin)
     print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
-    cube_chain = mcmc.sampler.get_chain(discard=int(nburn/nthin))
-    flat_chain = mcmc.sampler.get_chain(discard=int(nburn/nthin), flat=True)
+    cube_chain = mcmc.sampler.chain # (nwalkers x niter x nparams)
+    flat_chain = cube_chain.reshape(-1, cube_chain.shape[2], order='F') # ((nwalkers x niter) x nparams)
     mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
 
     #################
