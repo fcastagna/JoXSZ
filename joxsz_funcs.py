@@ -151,8 +151,8 @@ class SZ_data:
     integ_mu = if calc_integ == True, prior mean
     integ_sig = if calc_integ == True, prior sigma
     '''
-    def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering, integ_mu=None,
-                integ_sig=None):
+    def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering, calc_integ=False,
+                 integ_mu=None, integ_sig=None):
         self.phys_const = phys_const
         self.step = step
         self.kpc_as = kpc_as
