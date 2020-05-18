@@ -442,7 +442,7 @@ def get_sz_like(self, output='ll'):
     # Log-likelihood calculation
     chisq = np.nansum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/self.data.sz.flux_data[2])**2)
     log_lik = -chisq/2
-        if self.data.sz.calc_integ:
+    if self.data.sz.calc_integ:
         cint = simps(np.concatenate((f(0), y), axis=None)*
                      np.arange(0, self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60), 
                      np.arange(0, self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60))*2*np.pi
