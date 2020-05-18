@@ -8,6 +8,7 @@ from abel.direct import direct_transform
 from scipy.interpolate import interp1d
 from scipy.signal import fftconvolve
 from scipy.fftpack import fft2, ifft2
+from scipy.integrate import simps
 import matplotlib.pyplot as plt
 import time
 
