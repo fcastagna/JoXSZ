@@ -10,7 +10,7 @@ As an example, we show the application of `JoXSZ` on the high-redshift cluster o
 Beam data and transfer function data come from the [NIKA data release](http://lpsc.in2p3.fr/NIKA2LPSZ/nika2sz.release.php), while X-ray data come from *Chandra* observations, reduced following the standard procedures (e.g. [Andreon et al. 2019](https://ui.adsabs.harvard.edu/abs/2019A%26A...630A..78A/abstract)).
 
 PLEASE NOTE that the default version of JoXSZ makes use of emcee 2.
-If you prefer emcee 3, consider the branch [`emcee3`](https://github.com/fcastagna/JoXSZ/tree/emcee3). Despite being slightly slower, emcee 3 allows to serialize the sampler output and thus prevents the user from losing the saved chain even in case of a crash.
+If you prefer emcee 3, consider the branch [emcee3](https://github.com/fcastagna/JoXSZ/tree/emcee3). Despite being slightly slower, emcee 3 allows to serialize the sampler output and thus prevents the user from losing the saved chain even in case of a crash.
 
 ### Requirements
 `JoXSZ` requires the following:
