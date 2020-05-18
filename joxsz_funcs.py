@@ -145,11 +145,13 @@ class SZ_data:
     radius = array of radii in arcsec
     sep = index of radius 0
     r_pp = radius in kpc used to compute the pressure profile
-    ub = upper bound of r_pp used for convolution (ub=sep unless r_pp.size < sep)
     d_mat = matrix of distances in kpc centered on 0 with step=mystep
     filtering = transfer function matrix
+    integ_mu = if the integral is included in the likelihood, prior mean
+    integ_sig = if the integral is included in the likelihood, prior sigma
     '''
-    def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering):
+    def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering, integ_mu=None,
+                integ_sig=None):
         self.phys_const = phys_const
         self.step = step
         self.kpc_as = kpc_as
@@ -159,9 +161,10 @@ class SZ_data:
         self.radius = radius
         self.sep = sep
         self.r_pp = r_pp
-        self.ub = ub
         self.d_mat = d_mat
         self.filtering = filtering
+        self.integ_mu = integ_mu
+        self.integ_sig = integ_sig
 
 def getEdges(infg, bands):
     '''
@@ -406,15 +409,14 @@ def get_sz_like(self, output='ll'):
         'bright' = surface brightness profile
     ----------------------
     RETURN: desired output
-    '''
+    '''    
     # pressure profile
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
     # abel transform
-    ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', backend='Python')[:self.data.sz.ub]
+    ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', backend='Python')
     # Compton parameter
     y = (kpc_cm*self.data.sz.phys_const[1]/self.data.sz.phys_const[0]*ab)
-    f = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
-                 np.append(y, y), 'cubic', bounds_error=False, fill_value=(0., 0.))
+    f = interp1d(np.append(-self.data.sz.r_pp, self.data.sz.r_pp), np.append(y, y), 'cubic', bounds_error=False, fill_value=(0., 0.))
     # Compton parameter 2D image
     y_2d = f(self.data.sz.d_mat) 
     # Convolution with the beam
@@ -423,8 +425,8 @@ def get_sz_like(self, output='ll'):
     FT_map_in = fft2(conv_2d)
     map_out = np.real(ifft2(FT_map_in*self.data.sz.filtering))
     # Temperature-dependent conversion from Compton parameter to mJy/beam
-    t_prof = self.model.T_cmpt.temp_fun(self.pars, self.data.sz.r_pp[:self.data.sz.ub], getT_SZ=True)
-    h = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.ub], self.data.sz.r_pp[:self.data.sz.ub]),
+    t_prof = self.model.T_cmpt.temp_fun(self.pars, self.data.sz.r_pp[:self.data.sz.sep], getT_SZ=True)
+    h = interp1d(np.append(-self.data.sz.r_pp[:self.data.sz.sep], self.data.sz.r_pp[:self.data.sz.sep]),
                  np.append(t_prof, t_prof), 'cubic', bounds_error=False, fill_value=(t_prof[-1], t_prof[-1]))
     map_prof = map_out[conv_2d.shape[0]//2, 
                        conv_2d.shape[0]//2:]*self.data.sz.convert(np.append(h(0.), t_prof))*self.pars['calibration'].val
@@ -432,6 +434,14 @@ def get_sz_like(self, output='ll'):
     # Log-likelihood calculation
     chisq = np.nansum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/self.data.sz.flux_data[2])**2)
     log_lik = -chisq/2
+    if calc_integ:
+        cint = simps(np.concatenate((f(0), y), axis=None)*
+                     np.arange(0, self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60), 
+                     np.arange(0, self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60))*2*np.pi
+        new_chi = np.nansum((cint-self.data.sz.integ_mu)/self.data.sz.integ_sig**2)
+        log_lik -= new_chi/2
+        if output == 'integ':
+            return cint
     if output == 'll':
         return log_lik
     elif output == 'chisq':
@@ -442,7 +452,7 @@ def get_sz_like(self, output='ll'):
         return map_prof
     else:
         raise RuntimeError('Unrecognised output name (must be "ll", "chisq", "pp" or "bright")')
-
+        
 def mylikeFromProfs(self, predprofs):
     '''
     Computes the X-ray log-likelihood for the current parameters
