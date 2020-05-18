@@ -412,7 +412,7 @@ def get_sz_like(self, output='ll'):
         'bright' = surface brightness profile
     ----------------------
     RETURN: desired output
-    '''    
+    '''
     # pressure profile
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
     # abel transform
@@ -455,7 +455,7 @@ def get_sz_like(self, output='ll'):
         return map_prof
     else:
         raise RuntimeError('Unrecognised output name (must be "ll", "chisq", "pp" or "bright")')
-        
+
 def mylikeFromProfs(self, predprofs):
     '''
     Computes the X-ray log-likelihood for the current parameters
