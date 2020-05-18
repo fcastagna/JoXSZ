@@ -144,7 +144,7 @@ class SZ_data:
     -----------------------------------------------
     phys_const = physical constants required (electron rest mass - keV, Thomson cross section - cm^2)
     step = binning step
-    kpc_as = number of kpc per arcsec
+    kpc_as = kpc in arcsec
     convert = interpolation function for the temperature-dependent conversion Compton to mJy
     flux_data = radius (arcsec), flux density, statistical error
     beam_2d = 2D image of the beam
