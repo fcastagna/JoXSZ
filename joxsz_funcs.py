@@ -147,8 +147,9 @@ class SZ_data:
     r_pp = radius in kpc used to compute the pressure profile
     d_mat = matrix of distances in kpc centered on 0 with step=mystep
     filtering = transfer function matrix
-    integ_mu = if the integral is included in the likelihood, prior mean
-    integ_sig = if the integral is included in the likelihood, prior sigma
+    calc_integ = whether to include integrated Compton parameter in the likelihood (boolean, default is False)
+    integ_mu = if calc_integ == True, prior mean
+    integ_sig = if calc_integ == True, prior sigma
     '''
     def __init__(self, phys_const, step, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering, integ_mu=None,
                 integ_sig=None):
@@ -163,6 +164,7 @@ class SZ_data:
         self.r_pp = r_pp
         self.d_mat = d_mat
         self.filtering = filtering
+        self.calc_integ = calc_integ
         self.integ_mu = integ_mu
         self.integ_sig = integ_sig
 
@@ -434,7 +436,7 @@ def get_sz_like(self, output='ll'):
     # Log-likelihood calculation
     chisq = np.nansum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/self.data.sz.flux_data[2])**2)
     log_lik = -chisq/2
-    if calc_integ:
+    if self.data.sz.calc_integ:
         cint = simps(np.concatenate((f(0), y), axis=None)*
                      np.arange(0, self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60), 
                      np.arange(0, self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60))*2*np.pi
