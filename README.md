@@ -9,6 +9,8 @@ As an example, we show the application of `JoXSZ` on the high-redshift cluster o
 
 Beam data and transfer function data come from the [NIKA data release](http://lpsc.in2p3.fr/NIKA2LPSZ/nika2sz.release.php), while X-ray data come from *Chandra* observations, reduced following the standard procedures (e.g. [Andreon et al. 2019](https://ui.adsabs.harvard.edu/abs/2019A%26A...630A..78A/abstract)).
 
+PLEASE NOTE that this version of the code requires version 3 of the emcee package. If you prefer emcee 2, skip to the branch [`master`](https://github.com/fcastagna/JoXSZ).
+
 ### Requirements
 `JoXSZ` requires the following:
 - [mbproj2](https://github.com/jeremysanders/mbproj2)
