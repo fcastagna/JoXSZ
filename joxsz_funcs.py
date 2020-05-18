@@ -415,6 +415,7 @@ def get_sz_like(self, output='ll'):
         'chisq' = Chi-Squared
         'pp' = pressure profile
         'bright' = surface brightness profile
+        'integ' = integrated Compton parameter (only if calc_integ == True)
     ----------------------
     RETURN: desired output
     '''
