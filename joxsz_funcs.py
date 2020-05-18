@@ -151,7 +151,7 @@ class SZ_data:
     radius = array of radii in arcsec
     sep = index of radius 0
     r_pp = radius in kpc used to compute the pressure profile
-    d_mat = matrix of distances in kpc centered on 0 with step=mystep
+    d_mat = matrix of distances in kpc centered on 0 with given step
     filtering = transfer function matrix
     calc_integ = whether to include integrated Compton parameter in the likelihood (boolean, default is False)
     integ_mu = if calc_integ == True, prior mean
