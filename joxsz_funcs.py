@@ -446,7 +446,7 @@ def get_sz_like(self, output='ll'):
         cint = simps(np.concatenate((f(0), y), axis=None)*
                      np.arange(0, self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60), 
                      np.arange(0, self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60))*2*np.pi
-        new_chi = np.nansum((cint-self.data.sz.integ_mu)/self.data.sz.integ_sig**2)
+        new_chi = np.nansum(((cint-self.data.sz.integ_mu)/self.data.sz.integ_sig)**2)
         log_lik -= new_chi/2
         if output == 'integ':
             return cint
