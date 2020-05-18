@@ -45,6 +45,11 @@ tf_approx = False
 fwhm_beam = None # fwhm of the normal distribution for the beam approximation
 loc, scale, c = None, None, None # location, scale and normalization parameters of the normal cdf for the tf approximation
 
+# Integrated Compton parameter option
+calc_integ = False # apply or do not apply?
+integ_mu = .94/1e3 # from Planck 
+integ_sig = .36/1e3 # from Planck
+
 #################
 ### X-ray
 
@@ -97,13 +102,13 @@ def main():
     radius = np.append(-radius[:0:-1], radius) # from positive to entire axis
     sep = radius.size//2 # index of radius 0
     r_pp = np.arange(mystep*kpc_as, R_b+mystep*kpc_as, mystep*kpc_as) # radius in kpc used to compute the pressure profile
-    ub = min(sep, r_pp.size) # ub=sep unless r_pp.size < sep
     d_mat = centdistmat(radius*kpc_as) # matrix of distances in kpc centered on 0 with step=mystep
     wn_as, tf = read_tf(tf_filename, approx=tf_approx, loc=loc, scale=scale, c=c) # wave number in arcsec^(-1), transmission
     filtering = filt_image(wn_as, tf, d_mat.shape[0], mystep) # transfer function matrix
     t_keV, compt_Jy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True) # Temp-dependent conversion Compton to mJy
     convert = interp1d(t_keV, compt_Jy_beam*1e3, 'linear', fill_value='extrapolate')
-    sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, ub, d_mat, filtering) 
+    sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, d_mat, filtering, calc_integ, 
+		      integ_mu, integ_sig) 
 
     # remove cache
     mb.xspechelper.deleteFile('countrate_cache.hdf5')
