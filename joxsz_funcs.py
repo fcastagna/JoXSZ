@@ -460,7 +460,7 @@ def get_sz_like(self, output='ll'):
     elif output == 'bright':
         return map_prof
     else:
-        raise RuntimeError('Unrecognised output name (must be "ll", "chisq", "pp" or "bright")')
+        raise RuntimeError('Unrecognised output name (must be "ll", "chisq", "pp", "bright" or "integ")')
 
 def mylikeFromProfs(self, predprofs):
     '''
