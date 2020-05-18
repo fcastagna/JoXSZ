@@ -419,7 +419,7 @@ def get_sz_like(self, output='ll'):
     # abel transform
     ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', backend='Python')
     # Compton parameter
-    y = (kpc_cm*self.data.sz.phys_const[1]/self.data.sz.phys_const[0]*ab)
+    y = kpc_cm*self.data.sz.phys_const[1]/self.data.sz.phys_const[0]*ab
     f = interp1d(np.append(-self.data.sz.r_pp, self.data.sz.r_pp), np.append(y, y), 'cubic', bounds_error=False, fill_value=(0., 0.))
     # Compton parameter 2D image
     y_2d = f(self.data.sz.d_mat) 
