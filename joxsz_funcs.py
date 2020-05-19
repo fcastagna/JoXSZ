@@ -540,7 +540,7 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
                 bestprob = lnprob.max()
                 maxidx = lnprob.argmax()
                 bestfit = mcmc.pos0[maxidx]
-            if (autorefit and i > nburn*minfrac and bestfit is not None ):
+            if (autorefit and i > nburn*minfrac and bestfit is not None):
                 print('Restarting burn as new best fit has been found (%g > %g)' % (bestprob, initprob))
                 mcmc.fit.updateThawed(bestfit)
                 mcmc.sampler.reset()
