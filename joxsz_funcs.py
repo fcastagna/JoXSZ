@@ -109,9 +109,10 @@ def read_tf(filename, approx=False, loc=0., scale=0.02, c=0.95):
 
 def dist(naxis):
     '''
-    Returns a symmetric matrix in which the value of each element is proportional to its frequency 
+    Returns a matrix in which the value of each element is proportional to its frequency 
     (https://www.harrisgeospatial.com/docs/DIST.html)
-    ----------------------------------------------------------------------------------------------
+    If you shift the 0 to the centre using fftshift, you obtain a symmetric matrix
+    ------------------------------------------------------------------------------------
     naxis = number of elements per row and per column
     -------------------------------------------------
     RETURN: the (naxis x naxis) matrix
