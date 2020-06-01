@@ -12,6 +12,8 @@ Beam data and transfer function data come from the [NIKA data release](http://lp
 PLEASE NOTE that the default version of JoXSZ makes use of emcee 2.
 If you prefer emcee 3, consider the branch [emcee3](https://github.com/fcastagna/JoXSZ/tree/emcee3). Despite being slightly slower, emcee 3 allows to serialize the sampler output and thus prevents the user from losing the saved chain even in case of a crash.
 
+For more details, see [Castagna and Andreon, 2020](https://arxiv.org/abs/2005.12315).
+
 ### Requirements
 `JoXSZ` requires the following:
 - [mbproj2](https://github.com/jeremysanders/mbproj2)
