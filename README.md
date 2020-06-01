@@ -11,6 +11,8 @@ Beam data and transfer function data come from the [NIKA data release](http://lp
 
 PLEASE NOTE that this version of the code requires version 3 of the emcee package. If you prefer emcee 2, skip to the branch [master](https://github.com/fcastagna/JoXSZ).
 
+For more details, see [Castagna and Andreon, 2020](https://arxiv.org/abs/2005.12315).
+
 ### Requirements
 `JoXSZ` requires the following:
 - [mbproj2](https://github.com/jeremysanders/mbproj2)
