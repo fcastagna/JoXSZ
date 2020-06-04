@@ -148,7 +148,7 @@ def fitwithmod(data, perc_x, perc_sz, ci=95, labsize=25., ticksize=20., textsize
     ax[(i+1)//3, (i+1)%3].errorbar(data.sz.flux_data[0]/60, data.sz.flux_data[1], yerr=data.sz.flux_data[2], fmt='o', markersize=2., 
                                    color='black', label='SZ data')
     ax[(i+1)//3, (i+1)%3].errorbar(r_am, msz, color='r', label='Best-fit')
-    ax[(i+1)//3, (i+1)%3].fill_between(r_am, lsz, usz, color='gold', label='95% CI')
+    ax[(i+1)//3, (i+1)%3].fill_between(r_am, lsz, usz, color='gold', label='%i%% CI' % ci)
     ax[(i+1)//3, (i+1)%3].set_xlabel('Radius (arcmin)', fontdict={'fontsize': labsize})
     ax[(i+1)//3, (i+1)%3].set_ylabel('$S_{SZ}$ (mJy·beam$^{-1}$)', fontdict={'fontsize': labsize})
     ax[(i+1)//3, (i+1)%3].set_xscale('linear')
