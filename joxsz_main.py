@@ -174,6 +174,7 @@ def main():
 
     # do fitting of data with model
     fit = mb.Fit(pars, model, data)
+    fit.thawed = [name for name, par in fit.pars.items() if not par.frozen] # change order for plotting reasons
     fit.exclude_unphy_mass = exclude_unphy_mass
     fit.savedir = savedir
     # add pressure and mass components
