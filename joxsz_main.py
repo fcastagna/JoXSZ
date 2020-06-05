@@ -37,7 +37,7 @@ files_sz_dir = './data/SZ' # SZ data directory
 beam_filename = '%s/Beam150GHz.fits' %files_sz_dir
 tf_filename = '%s/TransferFunction150GHz_CLJ1227.fits' %files_sz_dir
 flux_filename = '%s/press_data_cl1226_flagsource_Xraycent.dat' %files_sz_dir 
-convert_filename = '%s/Jy_per_beam_to_Compton.dat' %files_sz_dir
+convert_filename = '%s/Compton_to_Jy_per_beam.dat' %files_sz_dir # conversion Compton -> Jy/beam
 
 # Beam and transfer function. From raw data or Gaussian approximation?
 beam_approx = False
@@ -105,8 +105,8 @@ def main():
     d_mat = centdistmat(radius*kpc_as) # matrix of distances in kpc centered on 0 with step=mystep
     wn_as, tf = read_tf(tf_filename, approx=tf_approx, loc=loc, scale=scale, c=c) # wave number in arcsec^(-1), transmission
     filtering = filt_image(wn_as, tf, d_mat.shape[0], mystep) # transfer function matrix
-    t_keV, compt_Jy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True) # Temp-dependent conversion Compton to mJy
-    convert = interp1d(t_keV, compt_Jy_beam*1e3, 'linear', fill_value='extrapolate')
+    t_keV, compt_mJy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True)*1e3 # Temp-dependent conversion Compton to mJy
+    convert = interp1d(t_keV, compt_mJy_beam, 'linear', fill_value='extrapolate')
     sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, d_mat, filtering, calc_integ, 
 		      integ_mu, integ_sig) 
 
