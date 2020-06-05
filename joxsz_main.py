@@ -29,6 +29,22 @@ cosmology.H0 = 67.32 # Hubble's constant (km/s/Mpc)
 cosmology.WM = 0.3158 # matter density
 cosmology.WV = 0.6842 # vacuum density
 
+# name for outputs
+name = 'joxsz'
+plotdir = './' # directory for the plots
+savedir = './' # directory for saved files
+
+# Uncertainty level
+ci = 95
+
+# MCMC parameters
+nburn = 2000 # number of burn-in iterations
+nlength = 5000 # number of chain iterations (after burn-in)
+nwalkers = 30 # number of random walkers
+nthreads = 8 # number of processes/threads
+nthin = 5 # thinning
+seed = None # random seed
+
 #################
 ### SZ
 
@@ -67,22 +83,6 @@ rmf = '%s/source.rmf' %files_x_dir
 arf = '%s/source.arf' %files_x_dir
 infgtempl = files_x_dir+'/fg_profnew_%04i_%04i.dat' # foreground profile
 inbgtempl = files_x_dir+'/bg_profnew_%04i_%04i.dat' # background profile
-
-# name for outputs
-name = 'joxsz'
-plotdir = './' # directory for the plots
-savedir = './' # directory for saved files
-
-# Uncertainty level
-ci = 95
-
-# MCMC parameters
-nburn = 2000 # number of burn-in iterations
-nlength = 5000 # number of chain iterations (after burn-in)
-nwalkers = 30 # number of random walkers
-nthreads = 8 # number of processes/threads
-nthin = 5 # thinning
-seed = None # random seed
 
 # whether to exclude unphysical masses from fit
 exclude_unphy_mass = True
