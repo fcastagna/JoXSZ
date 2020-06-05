@@ -63,6 +63,11 @@ tf_approx = False
 fwhm_beam = None # fwhm of the normal distribution for the beam approximation
 loc, scale, c = None, None, None # location, scale and normalization parameters of the normal cdf for the tf approximation
 
+# Integrated Compton parameter option
+calc_integ = False # apply or do not apply?
+integ_mu = .94/1e3 # from Planck 
+integ_sig = .36/1e3 # from Planck
+
 #################
 ### X-ray
 
@@ -83,11 +88,6 @@ inbgtempl = files_x_dir+'/bg_profnew_%04i_%04i.dat' # background profile
 
 # whether to exclude unphysical masses from fit
 exclude_unphy_mass = True
-
-# Integrated Compton parameter option
-calc_integ = False # apply or do not apply?
-integ_mu = .94/1e3 # from Planck 
-integ_sig = .36/1e3 # from Planck
 
 #################
 ### Code
