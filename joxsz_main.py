@@ -107,8 +107,8 @@ def main():
     d_mat = centdistmat(radius*kpc_as) # matrix of distances in kpc centered on 0 with step=mystep
     wn_as, tf = read_tf(tf_filename, approx=tf_approx, loc=loc, scale=scale, c=c) # wave number in arcsec^(-1), transmission
     filtering = filt_image(wn_as, tf, d_mat.shape[0], mystep) # transfer function matrix
-    t_keV, compt_mJy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True)*1e3 # Temp-dependent conversion Compton to mJy
-    convert = interp1d(t_keV, compt_mJy_beam, 'linear', fill_value='extrapolate')
+    t_keV, compt_Jy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True) # Temp-dependent conversion Compton to Jy
+    convert = interp1d(t_keV, 1e3*compt_Jy_beam, 'linear', fill_value='extrapolate')
     sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, d_mat, filtering, calc_integ, 
 		      integ_mu, integ_sig) 
     # remove cache
