@@ -191,6 +191,7 @@ def main():
 
     # construct MCMC object and do burn in
     mcmc = mb.MCMC(fit, walkers=nwalkers, processes=nthreads)
+    mcmc.seed = seed # add seed
     chainfilename = '%s%s_chain.hdf5' % (savedir, name)
     # run mcmc proper and save the chain
     mcmc_run(mcmc, nburn, nsteps=nlength, nthin=nthin)
