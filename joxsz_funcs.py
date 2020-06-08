@@ -524,6 +524,24 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
     minfrac = minimum fraction of burn in to do if new minimum found
     minimprove = minimum improvement in fit statistic to do a new fit
     '''
+    def _generateInitPars(mcmc):
+        '''
+        Generate initial set of parameters from fit
+        -------------------------------------------
+        '''
+        thawedpars = np.array(mcmc.fit.thawedParVals())
+        assert np.all(np.isfinite(thawedpars))
+        # create enough parameters with finite likelihoods
+        p0 = []
+        _ = 0
+        while len(p0) < mcmc.walkers:
+            if mcmc.seed is not None:
+                _ += 1
+                np.random.seed(mcmc.seed*_)
+            p = thawedpars*(1+np.random.normal(0, mcmc.initspread, size=mcmc.numpars))
+            if np.isfinite(mcmc.fit.getLikelihood(p)):
+                p0.append(p)
+        return p0
     def innerburn():
         '''
         Return False if new minimum found and autorefit is set. Adapted from MBProj2
@@ -531,7 +549,7 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
         '''
         bestfit = None
         bestprob = initprob = mcmc.fit.getLikelihood(mcmc.fit.thawedParVals())
-        p0 = mcmc._generateInitPars()
+        p0 = _generateInitPars(mcmc)
         mcmc.header['burn'] = nburn
         for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nburn, storechain=False)):
             if i%10 == 0:
@@ -557,7 +575,7 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
     mcmc.header['length'] = nsteps
     if mcmc.pos0 is None:
         print(' Generating initial parameters')
-        p0 = mcmc._generateInitPars()
+        p0 = _generateInitPars(mcmc)
     else:
         print(' Starting from end of burn-in position')
         p0 = mcmc.pos0
