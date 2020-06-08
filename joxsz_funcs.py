@@ -553,7 +553,7 @@ class MCMC:
             if self.seed is not None:
                 _ += 1
                 np.random.seed(self.seed*_)
-            p = np.random.normal(0, self.initspread, size=self.numpars)+thawedpars
+            p = thawedpars*(1+np.random.normal(0, self.initspread, size=self.numpars))
             if np.isfinite(self.fit.getLikelihood(p)):
                 p0.append(p)
         return p0
