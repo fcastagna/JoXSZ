@@ -190,7 +190,7 @@ def main():
         pickle.dump(fit, f, -1)
 
     # construct MCMC object and do burn in
-    mcmc = mb.MCMC(fit, walkers=nwalkers, processes=nthreads)
+    mcmc = mb.MCMC(fit, walkers=nwalkers, processes=nthreads, initspread=.1)
     mcmc.seed = seed # add seed
     chainfilename = '%s%s_chain.hdf5' % (savedir, name)
     # run mcmc proper and save the chain
