@@ -526,7 +526,7 @@ class MCMC:
     backend = backend file for saving the chain
     walkers = number of random walkers
     seed = random seed (default is None)
-    initspread = random Gaussian width added to create initial parameters
+    initspread = random Gaussian width added to create initial parameters (either scalar or array of same length as fit_pars)
     '''
     def __init__(self, emcee, fit, pool, backend, walkers=100, seed=None, initspread=0.01):
         self.fit = fit
