@@ -239,7 +239,7 @@ class CmptPressure(mb.Cmpt):
             'a': mb.Param(1.33, minval=0.1, maxval=10.),
             'b': mb.Param(4.13, minval=0.1, maxval=15.),
             'c': mb.Param(0.014, minval=0., maxval=3.),
-            'r_p': mb.Param(300., minval=100., maxval=1000.)
+            'r_p': mb.Param(300., minval=100., maxval=3000.)
             }
         return pars
 
