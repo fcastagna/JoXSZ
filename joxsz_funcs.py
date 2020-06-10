@@ -228,11 +228,11 @@ class CmptPressure(mb.Cmpt):
         '''
         Default parameter values
         ------------------------
-        P_0 = normalizing constant
+        P_0 = normalizing constant (kev cm^{-3})
         a = rate of turnover between b and c
         b = logarithmic slope at r/r_p >> 1
         c = logarithmic slope at r/r_p << 1
-        r_p = characteristic radius
+        r_p = characteristic radius (kpc)
         '''        
         pars = {
             'P_0': mb.Param(0.4, minval=0., maxval=20.),
@@ -344,16 +344,16 @@ def mydens_defPars(self):
     Default density profile parameters.
     Copied from MBProj2 changing the parameter names for plotting reasons
     ---------------------------------------------------------------------
-    n_0 = normalizing constant 
-    r_c = core radius
+    n_0 = normalizing constant (cm^{-3})
+    r_c = core radius (kpc)
     alpha = logarithmic slope at r/r_c << 1
     beta = shape parameter for the isothermal β-model
-    r_s = scale radius (radius at which the density profile steepens with respect to the traditional β-model)
+    r_s = scale radius (radius at which the density profile steepens with respect to the traditional β-model) (kpc)
     gamma = width of the transition region
     epsilon = change of slope near r_s
     #
-    n_02 = additive constant
-    r_c2 = small core radius
+    n_02 = additive constant (cm^{-3})
+    r_c2 = small core radius (kpc)
     beta_2 = shape parameter
     '''
     pars = {
