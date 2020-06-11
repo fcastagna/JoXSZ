@@ -589,6 +589,8 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1):
     print('Starting sampling')
     for res in mcmc.sampler.sample(p1, thin=nthin, iterations=nsteps, progress=True):
         pass
+    print('Finished sampling')
+    print('Acceptance fraction: %s' %np.mean(mcmc.sampler.acceptance_fraction))
 
 def add_backend_attrs(chainfilename, fit, nburn, nthin):
     '''
