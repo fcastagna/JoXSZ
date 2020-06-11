@@ -198,7 +198,6 @@ def main():
         mcmc = MCMC(mc, fit, pool=pool, walkers=nwalkers, backend=backend, seed=seed, initspread=.1)
         mcmc_run(mcmc, nburn, nlength, nthin)
         add_backend_attrs(chainfilename, fit, nburn, nthin)
-    print('Acceptance fraction: %.3f' %np.mean(mcmc.sampler.acceptance_fraction))
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
     cube_chain = mcmc.sampler.chain # (nwalkers x niter x nparams)
     flat_chain = cube_chain.reshape(-1, cube_chain.shape[2], order='F') # ((nwalkers x niter) x nparams)
