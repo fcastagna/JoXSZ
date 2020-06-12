@@ -417,6 +417,8 @@ def get_sz_like(self, output='ll'):
     '''
     # pressure profile
     pp = self.press.press_fun(self.pars, self.data.sz.r_pp)
+    if output == 'pp':
+        return pp
     # abel transform
     ab = direct_transform(pp, r=self.data.sz.r_pp, direction='forward', backend='Python')
     # Compton parameter
@@ -435,6 +437,8 @@ def get_sz_like(self, output='ll'):
                  np.append(t_prof, t_prof), 'cubic', bounds_error=False, fill_value=(t_prof[-1], t_prof[-1]))
     map_prof = map_out[conv_2d.shape[0]//2, 
                        conv_2d.shape[0]//2:]*self.data.sz.convert(np.append(h(0.), t_prof))*self.pars['calibration'].val
+    if output == 'bright':
+        return map_prof
     g = interp1d(self.data.sz.radius[self.data.sz.sep:], map_prof, 'cubic', fill_value='extrapolate')
     # Log-likelihood calculation
     chisq = np.nansum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/self.data.sz.flux_data[2])**2)
@@ -451,10 +455,6 @@ def get_sz_like(self, output='ll'):
         return log_lik
     elif output == 'chisq':
         return chisq
-    elif output == 'pp':
-        return pp
-    elif output == 'bright':
-        return map_prof
     else:
         raise RuntimeError('Unrecognised output name (must be "ll", "chisq", "pp", "bright" or "integ")')
 
