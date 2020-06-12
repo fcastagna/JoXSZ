@@ -37,9 +37,9 @@ def traceplot(cube_chain, param_names, plotw=20, seed=None, ppp=4, labsize=18., 
             plt.tick_params(labelbottom=True)
             plt.xlabel('Iteration number')
             pdf.savefig(bbox_inches='tight')
-            if i+1 < cube_chain.shape[1]:
+            if i+1 < cube_chain.shape[2]:
                 plt.clf()
-        elif i+1 == cube_chain.shape[1]:
+        elif i+1 == cube_chain.shape[2]:
             plt.tick_params(labelbottom=True)
             plt.xlabel('Iteration number')
             pdf.savefig(bbox_inches='tight')
