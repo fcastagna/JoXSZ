@@ -204,12 +204,12 @@ def thermodynamic_profs(vals, r_kpc, fit):
     pars = fit.pars
     # density
     dens = fit.model.ne_cmpt.vikhFunction(pars, r_kpc)
-    # temperature (SZ)
-    temp = fit.model.T_cmpt.temp_fun(pars, r_kpc, getT_SZ=True)
-    # temperature (X-ray)
-    tempx = fit.model.T_cmpt.temp_fun(pars, r_kpc)
     # pressure
     press = fit.press.press_fun(pars, r_kpc)
+    # temperature (SZ)
+    temp = press/dens
+    # temperature (X-ray)
+    tempx = temp*10**pars['log(T_X/T_{SZ})'].val
     # entropy
     entr = temp/dens**(2/3)
     # cooling time
