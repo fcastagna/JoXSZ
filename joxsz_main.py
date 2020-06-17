@@ -7,8 +7,8 @@ import six.moves.cPickle as pickle
 import numpy as np
 import mbproj2 as mb
 from scipy.interpolate import interp1d
-from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, CmptPressure,
-                         CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like,
+from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, add_param_unit,
+			 CmptPressure, CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like,
                          mylikeFromProfs, getLikelihood, mcmc_run)
 from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
 			 frac_gas_prof, frac_gas_plot)
@@ -125,15 +125,19 @@ def main():
     data = mb.Data(bands, annuli)
     data.sz = sz_data # add SZ data
 
+    # add units to parameters
+    add_param_unit()
+
     # flat metallicity profile
     Z_cmpt = mb.CmptFlat('Z', annuli, defval=Z_solar, minval=0., maxval=1.)
+    Z_cmpt.unit = 'solar'
 
     # density profile
     ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
     # change parameter names for plotting reasons
-    mb.CmptVikhDensity.vikhFunction = MethodType(mydens_vikhFunction, ne_cmpt)
-    mb.CmptVikhDensity.defPars = MethodType(mydens_defPars, ne_cmpt)
-    mb.CmptVikhDensity.prior = MethodType(mydens_prior, ne_cmpt)
+    mb.CmptVikhDensity.vikhFunction = mydens_vikhFunction
+    mb.CmptVikhDensity.defPars = mydens_defPars
+    mb.CmptVikhDensity.prior = mydens_prior
 
     # pressure profile
     press_cmpt = CmptPressure('p', annuli)
@@ -200,6 +204,14 @@ def main():
     cube_chain = mcmc.sampler.chain # (nwalkers x niter x nparams)
     flat_chain = cube_chain.reshape(-1, cube_chain.shape[2], order='F') # ((nwalkers x niter) x nparams)
     mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
+
+    # Posterior distribution parameters
+    param_med = np.median(flat_chain, axis=0)
+    param_std = np.std(flat_chain, axis=0)
+    print('{:>18}'.format('|')+'%11s' % 'Median |'+'%11s' % 'Sd |'+'%14s' % 'Unit\n'+'-'*53)
+    for i in range(len(mcmc_thawed)):
+        print('{:>18}'.format('%s |' %mcmc_thawed[i])+'%9s |' %format(param_med[i], '.3f')+
+              '%9s |' %format(param_std[i], '.3f')+'%13s' % [pars[n].unit for n in mcmc_thawed][i])
 
     #################
     ### Plots
