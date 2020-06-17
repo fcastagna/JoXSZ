@@ -249,7 +249,7 @@ def Z_defpars(self):
     Update defpars function of metallicity object to include unit measure
     ---------------------------------------------------------------------
     '''
-    return {self.name: mb.Param(self.defval, unit=self.unit, minval=self.minval, maxval=self.maxval)}
+    return {self.name: mb.Param(self.defval, unit='solar', minval=self.minval, maxval=self.maxval)}
     
 class CmptPressure(mb.Cmpt):
     '''
