@@ -21,32 +21,6 @@ def check_emcee(emcee):
     if int(vers[0]) < 3:
         raise ImportError('Emcee 3 version is required. Please update the package')
 
-def add_param_unit():
-    '''
-    Adapt the param definition to include the unit measure
-    ------------------------------------------------------
-    '''
-    def param_new_init(self, val, minval=-1e99, maxval=1e99, unit='.', frozen=False):
-        mb.ParamBase.__init__(self, val, frozen=frozen)
-        self.minval = minval
-        self.maxval = maxval        
-        self.unit = unit
-    def param_new_repr(self):
-        return '<Param: val=%.3g, minval=%.3g, maxval=%.3g, unit=%s, frozen=%s>' % (
-            self.val, self.minval, self.maxval, self.unit, self.frozen)
-    mb.Param.__init__ = param_new_init
-    mb.Param.__repr__ = param_new_repr    
-    def pargau_new_init(self, val, prior_mu, prior_sigma, unit='.', frozen=False):
-        mb.ParamBase.__init__(self, val, frozen=frozen)
-        self.prior_mu = prior_mu
-        self.prior_sigma = prior_sigma
-        self.unit = unit        
-    def pargau_new_repr(self):
-        return '<ParamGaussian: val=%.3g, prior_mu=%.3g, prior_sigma=%.3g, unit=%s, frozen=%s>' % (
-            self.val, self.prior_mu, self.prior_sigma, self.unit, self.frozen)    
-    mb.ParamGaussian.__init__ = pargau_new_init
-    mb.ParamGaussian.__repr__ = pargau_new_repr
-
 def read_xy_err(filename, ncol):
     '''
     Read the data from FITS or ASCII file
@@ -243,6 +217,32 @@ def loadBand(infg, inbg, bandE, rmf, arf):
     if (abs(lastmyrad[-1]-radii[-1]) > .001):
          raise RuntimeError('Problem while reading bg file', lastmyrad[-1], radii[-1])
     return band
+
+def add_param_unit():
+    '''
+    Adapt the param definition to include the unit measure
+    ------------------------------------------------------
+    '''
+    def param_new_init(self, val, minval=-1e99, maxval=1e99, unit='.', frozen=False):
+        mb.ParamBase.__init__(self, val, frozen=frozen)
+        self.minval = minval
+        self.maxval = maxval        
+        self.unit = unit
+    def param_new_repr(self):
+        return '<Param: val=%.3g, minval=%.3g, maxval=%.3g, unit=%s, frozen=%s>' % (
+            self.val, self.minval, self.maxval, self.unit, self.frozen)
+    mb.Param.__init__ = param_new_init
+    mb.Param.__repr__ = param_new_repr    
+    def pargau_new_init(self, val, prior_mu, prior_sigma, unit='.', frozen=False):
+        mb.ParamBase.__init__(self, val, frozen=frozen)
+        self.prior_mu = prior_mu
+        self.prior_sigma = prior_sigma
+        self.unit = unit        
+    def pargau_new_repr(self):
+        return '<ParamGaussian: val=%.3g, prior_mu=%.3g, prior_sigma=%.3g, unit=%s, frozen=%s>' % (
+            self.val, self.prior_mu, self.prior_sigma, self.unit, self.frozen)    
+    mb.ParamGaussian.__init__ = pargau_new_init
+    mb.ParamGaussian.__repr__ = pargau_new_repr
 
 class CmptPressure(mb.Cmpt):
     '''
