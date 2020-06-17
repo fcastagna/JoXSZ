@@ -15,6 +15,32 @@ def check_emcee(emcee):
     vers = emcee.__version__
     if int(vers[0]) < 3:
         raise ImportError('Emcee 3 version is required. Please update the package')
+#from types import MethodType
+def newinit(self, val, unit='.', minval=-1e99, maxval=1e99, frozen=False):
+    mb.ParamBase.__init__(self, val, frozen=frozen)
+    self.unit = unit
+    self.minval = minval
+    self.maxval = maxval
+    
+def newrepr(self):
+    return '<Param: val=%.3g, unit=%s, minval=%.3g, maxval=%.3g, frozen=%s>' % (
+            self.val, self.unit, self.minval, self.maxval, self.frozen)
+
+mb.Param.__init__ = newinit#MethodType(newinit, mb.Param)
+mb.Param.__repr__ = newrepr#MethodType(newrepr, mb.Param)
+
+def gauinit(self, val, prior_mu, prior_sigma, unit='.', frozen=False):
+    mb.ParamBase.__init__(self, val, frozen=frozen)
+    self.prior_mu = prior_mu
+    self.prior_sigma = prior_sigma
+    self.unit = unit
+    
+def gaurepr(self):
+    return '<ParamGaussian: val=%.3g, prior_mu=%.3g, prior_sigma=%.3g, unit=%s, frozen=%s>' % (
+            self.val, self.prior_mu, self.prior_sigma, self.unit, self.frozen)
+
+mb.ParamGaussian.__init__ = gauinit
+mb.ParamGaussian.__repr__ = gaurepr
 
 def read_xy_err(filename, ncol):
     '''
@@ -232,11 +258,11 @@ class CmptPressure(mb.Cmpt):
         r_p = characteristic radius (kpc)
         '''        
         pars = {
-            'P_0': mb.Param(0.4, minval=0., maxval=20.),
-            'a': mb.Param(1.33, minval=0.1, maxval=20.),
-            'b': mb.Param(4.13, minval=0.1, maxval=15.),
-            'c': mb.Param(0.014, minval=0., maxval=3.),
-            'r_p': mb.Param(300., minval=100., maxval=3000.)
+            'P_0': mb.Param(0.4, unit='keV.cm^{-3}', minval=0., maxval=20.),
+            'a': mb.Param(1.33, unit='.', minval=0.1, maxval=10.),
+            'b': mb.Param(4.13, unit='.', minval=0.1, maxval=15.),
+            'c': mb.Param(0.014, unit='.', minval=0., maxval=3.),
+            'r_p': mb.Param(300., unit='kpc', minval=100., maxval=3000.)
             }
         return pars
 
@@ -283,7 +309,7 @@ class CmptUPPTemperature(mb.Cmpt):
         Default parameter T_ratio = T_X / T_SZ
         --------------------------------------
         '''
-        pars = {'log(T_X/T_{SZ})': mb.Param(0., minval=-1., maxval=1.)}
+        pars = {'log(T_X/T_{SZ})': mb.Param(0., unit='.', minval=-1., maxval=1.)}
         return pars
     
     def temp_fun(self, pars, r_kpc, getT_SZ=False):
@@ -354,19 +380,19 @@ def mydens_defPars(self):
     beta_2 = shape parameter
     '''
     pars = {
-        'log(n_0)': mb.Param(-3., minval=-7., maxval=2.),
-        r'\beta': mb.Param(2/3, minval=0., maxval=4.),
-        'log(r_c)': mb.Param(2.3, minval=-1., maxval=3.7),
-        'log(r_s)': mb.Param(2.7, minval=0., maxval=3.7),
-        r'\alpha': mb.Param(0., minval=-1., maxval=2.),
-        r'\epsilon': mb.Param(3., minval=0., maxval=5.),
-        r'\gamma': mb.Param(3., minval=0., maxval=10., frozen=True),
+        'log(n_0)': mb.Param(-3., unit='log(cm^{-3})', minval=-7., maxval=2.),
+        r'\beta': mb.Param(2/3, unit='.', minval=0., maxval=4.),
+        'log(r_c)': mb.Param(2.3, unit='log(kpc)', minval=-1., maxval=3.7),
+        'log(r_s)': mb.Param(2.7, unit='log(kpc)', minval=0., maxval=3.7),
+        r'\alpha': mb.Param(0., unit='.', minval=-1., maxval=2.),
+        r'\epsilon': mb.Param(3., unit='.', minval=0., maxval=5.),
+        r'\gamma': mb.Param(3., unit='.', minval=0., maxval=10., frozen=True),
         }
     if self.mode == 'double':
         pars.update({
-            'log(n_{02})': mb.Param(-1., minval=-7., maxval=2.),
-            r'\beta_2': mb.Param(0.5, minval=0., maxval=4.),
-            'log(r_{c2})': mb.Param(1.7, minval=-1., maxval=3.7),
+            'log(n_{02})': mb.Param(-1., unit='log(cm^{-3})', minval=-7., maxval=2.),
+            r'\beta_2': mb.Param(0.5, unit='.', minval=0., maxval=4.),
+            'log(r_{c2})': mb.Param(1.7, unit='log(kpc)', minval=-1., maxval=3.7),
             })
     return pars
 
