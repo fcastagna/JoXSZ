@@ -256,7 +256,7 @@ class CmptPressure(mb.Cmpt):
         '''
         Default parameter values
         ------------------------
-        P_0 = normalizing constant (kev cm^{-3})
+        P_0 = normalizing constant (kev.cm^{-3})
         a = rate of turnover between b and c
         b = logarithmic slope at r/r_p >> 1
         c = logarithmic slope at r/r_p << 1
