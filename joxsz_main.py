@@ -7,7 +7,7 @@ import six.moves.cPickle as pickle
 import numpy as np
 import mbproj2 as mb
 from scipy.interpolate import interp1d
-from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, add_param_unit,
+from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, add_param_unit, Z_defPars,
 			 CmptPressure, CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like,
                          mylikeFromProfs, getLikelihood, mcmc_run)
 from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
@@ -130,7 +130,7 @@ def main():
 
     # flat metallicity profile
     Z_cmpt = mb.CmptFlat('Z', annuli, defval=Z_solar, minval=0., maxval=1.)
-    Z_cmpt.unit = 'solar'
+    Z_cmpt.defPars = MethodType(Z_defPars, Z_cmpt)
 
     # density profile
     ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
