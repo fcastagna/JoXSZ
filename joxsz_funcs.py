@@ -361,13 +361,13 @@ def mydens_defPars(self):
         'log(r_s)': mb.Param(2.7, minval=0., maxval=3.7, unit='log(kpc)'),
         r'\alpha': mb.Param(0., minval=-1., maxval=2., unit='.'),
         r'\epsilon': mb.Param(3., minval=0., maxval=5., unit='.'),
-        r'\gamma': mb.Param(3., minval=0., maxval=10., frozen=True, unit='.'),
+        r'\gamma': mb.Param(3., minval=0., maxval=10., frozen=True, unit='.')
         }
     if self.mode == 'double':
         pars.update({
             'log(n_{02})': mb.Param(-1., minval=-7., maxval=2., unit='log(cm^{-3})'),
             r'\beta_2': mb.Param(0.5, minval=0., maxval=4., unit='.'),
-            'log(r_{c2})': mb.Param(1.7, minval=-1., maxval=3.7, unit='log(kpc)'),
+            'log(r_{c2})': mb.Param(1.7, minval=-1., maxval=3.7, unit='log(kpc)')
             })
     return pars
 
