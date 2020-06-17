@@ -234,6 +234,13 @@ def add_param_unit():
     mb.ParamGaussian.__init__ = pargau_new_init
     mb.ParamGaussian.__repr__ = pargau_new_repr
 
+def Z_defPars(self):
+    '''
+    Update defpars function of metallicity object to include unit measure
+    ---------------------------------------------------------------------
+    '''
+    return {self.name: mb.Param(self.defval, unit='solar', minval=self.minval, maxval=self.maxval)}
+
 class CmptPressure(mb.Cmpt):
     '''
     Class to parametrize the pressure profile
