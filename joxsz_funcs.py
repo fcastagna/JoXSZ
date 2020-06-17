@@ -12,6 +12,11 @@ from scipy.integrate import simps
 import h5py
 
 def check_emcee(emcee):
+    '''
+    Check that you are using version 3 of the emcee package
+    -------------------------------------------------------
+    RETURN: nothing, unless you are using an older version
+    '''
     vers = emcee.__version__
     if int(vers[0]) < 3:
         raise ImportError('Emcee 3 version is required. Please update the package')
@@ -213,6 +218,32 @@ def loadBand(infg, inbg, bandE, rmf, arf):
          raise RuntimeError('Problem while reading bg file', lastmyrad[-1], radii[-1])
     return band
 
+def add_param_unit():
+    '''
+    Adapt the param definition to include the unit measure
+    ------------------------------------------------------
+    '''
+    def param_new_init(self, val, minval=-1e99, maxval=1e99, unit='.', frozen=False):
+        mb.ParamBase.__init__(self, val, frozen=frozen)
+        self.minval = minval
+        self.maxval = maxval        
+        self.unit = unit
+    def param_new_repr(self):
+        return '<Param: val=%.3g, minval=%.3g, maxval=%.3g, unit=%s, frozen=%s>' % (
+            self.val, self.minval, self.maxval, self.unit, self.frozen)
+    mb.Param.__init__ = param_new_init
+    mb.Param.__repr__ = param_new_repr    
+    def pargau_new_init(self, val, prior_mu, prior_sigma, unit='.', frozen=False):
+        mb.ParamBase.__init__(self, val, frozen=frozen)
+        self.prior_mu = prior_mu
+        self.prior_sigma = prior_sigma
+        self.unit = unit        
+    def pargau_new_repr(self):
+        return '<ParamGaussian: val=%.3g, prior_mu=%.3g, prior_sigma=%.3g, unit=%s, frozen=%s>' % (
+            self.val, self.prior_mu, self.prior_sigma, self.unit, self.frozen)    
+    mb.ParamGaussian.__init__ = pargau_new_init
+    mb.ParamGaussian.__repr__ = pargau_new_repr
+
 class CmptPressure(mb.Cmpt):
     '''
     Class to parametrize the pressure profile
@@ -232,11 +263,11 @@ class CmptPressure(mb.Cmpt):
         r_p = characteristic radius (kpc)
         '''        
         pars = {
-            'P_0': mb.Param(0.4, minval=0., maxval=20.),
-            'a': mb.Param(1.33, minval=0.1, maxval=20.),
-            'b': mb.Param(4.13, minval=0.1, maxval=15.),
-            'c': mb.Param(0.014, minval=0., maxval=3.),
-            'r_p': mb.Param(300., minval=100., maxval=3000.)
+            'P_0': mb.Param(0.4, minval=0., maxval=20., unit='keV.cm^{-3}'),
+            'a': mb.Param(1.33, minval=0.1, maxval=10., unit='.'),
+            'b': mb.Param(4.13, minval=0.1, maxval=15., unit='.'),
+            'c': mb.Param(0.014, minval=0., maxval=3., unit='.'),
+            'r_p': mb.Param(300., minval=100., maxval=3000., unit='kpc')
             }
         return pars
 
@@ -283,7 +314,7 @@ class CmptUPPTemperature(mb.Cmpt):
         Default parameter T_ratio = T_X / T_SZ
         --------------------------------------
         '''
-        pars = {'log(T_X/T_{SZ})': mb.Param(0., minval=-1., maxval=1.)}
+        pars = {'log(T_X/T_{SZ})': mb.Param(0., minval=-1., maxval=1., unit='.')}
         return pars
     
     def temp_fun(self, pars, r_kpc, getT_SZ=False):
@@ -306,36 +337,6 @@ class CmptUPPTemperature(mb.Cmpt):
     def computeProf(self, pars):
         return self.temp_fun(pars, self.annuli.midpt_kpc)
 
-class CmptMyMass(mb.Cmpt):
-    '''
-    Class to compute the mass profile under the hydrostatic equilibrium assumption
-    ------------------------------------------------------------------------------
-    '''        
-    def __init__(self, name, annuli, press_prof, ne_prof):
-        mb.Cmpt.__init__(self, name, annuli)
-        self.press_prof = press_prof
-        self.ne_prof = ne_prof
-
-    def defPars(self):
-        '''
-        Default parameter values from pressure and density profiles
-        -----------------------------------------------------------
-        '''
-        pars = self.press_prof.defPars()
-        pars.update(self.ne_prof.defPars())
-        return pars
-    
-    def mass_fun(self, pars, r_kpc, mu_gas=0.61):
-        '''
-        Compute the mass profile
-        ------------------------
-        '''
-        dpr_kpc = self.press_prof.press_derivative(pars, r_kpc)
-        dpr_cm = dpr_kpc*keV_erg/kpc_cm
-        ne = self.ne_prof.vikhFunction(pars, r_kpc)
-        r_cm = r_kpc*kpc_cm
-        return -dpr_cm*r_cm**2/(mu_gas*mu_g*ne*G_cgs)/solar_mass_g
-    
 def mydens_defPars(self):
     '''
     Default density profile parameters.
@@ -354,19 +355,19 @@ def mydens_defPars(self):
     beta_2 = shape parameter
     '''
     pars = {
-        'log(n_0)': mb.Param(-3., minval=-7., maxval=2.),
-        r'\beta': mb.Param(2/3, minval=0., maxval=4.),
-        'log(r_c)': mb.Param(2.3, minval=-1., maxval=3.7),
-        'log(r_s)': mb.Param(2.7, minval=0., maxval=3.7),
-        r'\alpha': mb.Param(0., minval=-1., maxval=2.),
-        r'\epsilon': mb.Param(3., minval=0., maxval=5.),
-        r'\gamma': mb.Param(3., minval=0., maxval=10., frozen=True),
+        'log(n_0)': mb.Param(-3., minval=-7., maxval=2., unit='log(cm^{-3})'),
+        r'\beta': mb.Param(2/3, minval=0., maxval=4., unit='.'),
+        'log(r_c)': mb.Param(2.3, minval=-1., maxval=3.7, unit='log(kpc)'),
+        'log(r_s)': mb.Param(2.7, minval=0., maxval=3.7, unit='log(kpc)'),
+        r'\alpha': mb.Param(0., minval=-1., maxval=2., unit='.'),
+        r'\epsilon': mb.Param(3., minval=0., maxval=5., unit='.'),
+        r'\gamma': mb.Param(3., minval=0., maxval=10., frozen=True, unit='.'),
         }
     if self.mode == 'double':
         pars.update({
-            'log(n_{02})': mb.Param(-1., minval=-7., maxval=2.),
-            r'\beta_2': mb.Param(0.5, minval=0., maxval=4.),
-            'log(r_{c2})': mb.Param(1.7, minval=-1., maxval=3.7),
+            'log(n_{02})': mb.Param(-1., minval=-7., maxval=2., unit='log(cm^{-3})'),
+            r'\beta_2': mb.Param(0.5, minval=0., maxval=4., unit='.'),
+            'log(r_{c2})': mb.Param(1.7, minval=-1., maxval=3.7, unit='log(kpc)'),
             })
     return pars
 
@@ -403,6 +404,36 @@ def mydens_prior(self, pars):
     if r_c > r_s:
         return -np.inf
     return 0.
+
+class CmptMyMass(mb.Cmpt):
+    '''
+    Class to compute the mass profile under the hydrostatic equilibrium assumption
+    ------------------------------------------------------------------------------
+    '''        
+    def __init__(self, name, annuli, press_prof, ne_prof):
+        mb.Cmpt.__init__(self, name, annuli)
+        self.press_prof = press_prof
+        self.ne_prof = ne_prof
+
+    def defPars(self):
+        '''
+        Default parameter values from pressure and density profiles
+        -----------------------------------------------------------
+        '''
+        pars = self.press_prof.defPars()
+        pars.update(self.ne_prof.defPars())
+        return pars
+    
+    def mass_fun(self, pars, r_kpc, mu_gas=0.61):
+        '''
+        Compute the mass profile
+        ------------------------
+        '''
+        dpr_kpc = self.press_prof.press_derivative(pars, r_kpc)
+        dpr_cm = dpr_kpc*keV_erg/kpc_cm
+        ne = self.ne_prof.vikhFunction(pars, r_kpc)
+        r_cm = r_kpc*kpc_cm
+        return -dpr_cm*r_cm**2/(mu_gas*mu_g*ne*G_cgs)/solar_mass_g    
 
 def get_sz_like(self, output='ll'):
     '''
