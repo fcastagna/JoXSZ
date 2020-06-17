@@ -207,6 +207,7 @@ def main():
     flat_chain = cube_chain.reshape(-1, cube_chain.shape[2], order='F') # ((nwalkers x niter) x nparams)
     mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
 
+    # Posterior distribution parameters
     param_med = np.median(flat_chain, axis=0)
     param_std = np.std(flat_chain, axis=0)
     print('{:>18}'.format('|')+'%11s' % 'Median |'+'%11s' % 'Sd |'+'%14s' % 'Unit\n'+'-'*53)
@@ -218,35 +219,24 @@ def main():
     ### Plots
 
     # Bayesian diagnostics
-    import time; t0 = time.time()
     traceplot(cube_chain, mcmc_thawed, seed=None, plotdir=plotdir)
-    t1 = time.time(); print(t1-t0)
     triangle(flat_chain, mcmc_thawed, plotdir=plotdir)
-    t2 = time.time(); print(t2-t1)
 
     # Best fitting profiles on SZ and X-ray surface brightness
     perc_x, perc_sz = best_fit_prof(cube_chain, fit, num='all', seed=seed, ci=ci)
-    t3 = time.time(); print(t3-t2)
     fitwithmod(data, perc_x, perc_sz, ci=ci, plotdir=plotdir)
-    t4 = time.time(); print(t4-t3)
 
     # Main thermodynamic radial profiles (density, temperature(s), pressure, entropy, cooling time, gas mass)
     dens, temp, prss, entr, cool, gmss, xtmp = comp_rad_profs(cube_chain, fit, num='all', seed=seed, ci=ci)
-    t5 = time.time(); print(t5-t4)
     plot_rad_profs(r_pp, dens, temp, prss, entr, cool, gmss, xtmp, xmin=100., xmax=1000., plotdir=plotdir)
-    t6 = time.time(); print(t6-t5)
 
     # Cumulative total mass profile
     mass_prof, r_delta, m_delta = comp_mass_prof(cube_chain, fit, num='all', seed=seed, delta=500, start_opt=1000., ci=ci)
-    t7 = time.time(); print(t7-t6)
     mass_plot(r_pp, mass_prof, cosmology, delta=500, r_delta=r_delta, m_delta=m_delta, xmin=100., xmax=1500., plotdir=plotdir)
-    t8 = time.time(); print(t8-t7)
 
     # Gas fraction profile
     f_gas = frac_gas_prof(cube_chain, fit, num='all', seed=seed, ci=ci)
-    t9 = time.time(); print(t9-t8)
     frac_gas_plot(r_pp, f_gas, ci=ci, plotdir=plotdir)
-    t10 = time.time(); print(t10-t9)
 
 if __name__ == '__main__':
     main()
