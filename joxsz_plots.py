@@ -5,6 +5,8 @@ import corner
 from mbproj2.physconstants import keV_erg, kpc_cm, mu_g, G_cgs, solar_mass_g, ne_nH, Mpc_cm, yr_s, mu_e, Mpc_km
 from scipy import optimize
 
+font = {'size': 8}
+plt.rc('font', **font)
 plt.sytle.use('classic')
 
 def traceplot(cube_chain, param_names, plotw=20, seed=None, ppp=4, labsize=18., ticksize=10., plotdir='./'):
@@ -45,21 +47,46 @@ def traceplot(cube_chain, param_names, plotw=20, seed=None, ppp=4, labsize=18., 
             pdf.savefig(bbox_inches='tight')
     pdf.close()
 
-def triangle(mat_chain, param_names, labsize=25., titsize=15., plotdir='./'):
+def triangle(mat_chain, param_names, show_lines=True, col_lines='r', ci=95, labsize=25., titsize=15., plotdir='./'):
     '''
     Univariate and multivariate distribution of the parameters in the MCMC
     ----------------------------------------------------------------------
     mat_chain = 2d array of sampled values ((nw x niter) x nparam)
     param_names = names of the parameters
+    show_lines = whether to show lines for median and uncertainty interval (boolean, default is True)
+    col_lines = line colour (default is red)
+    ci = uncertainty level of the interval
     labsize = label font size
     titsize = titles font size
     plotdir = directory where to place the plot
     '''
-    param_latex = ['${}$'.format(i) for i in param_names]
     plt.clf()
     pdf = PdfPages(plotdir+'cornerplot.pdf')
-    corner.corner(mat_chain, labels=param_latex, quantiles=np.repeat(.5, len(param_latex)), show_titles=True, 
-                  title_kwargs={'fontsize': titsize}, label_kwargs={'fontsize': labsize})
+    param_latex = ['${}$'.format(i) for i in param_names]
+    fig = corner.corner(mat_chain, labels=param_latex, title_kwargs={'fontsize': titsize}, label_kwargs={'fontsize': labsize})
+    axes = np.array(fig.axes).reshape((len(param_names), len(param_names)))
+    plb, pmed, pub = get_equal_tailed(mat_chain, ci=ci)
+    for i in range(len(param_names)):
+        l_err, u_err = pmed[i]-plb[i], pub[i]-pmed[i]
+        axes[i,i].set_title('%s = $%.2f_{-%.2f}^{+%.2f}$' % (param_latex[i], pmed[i], l_err, u_err))
+        if show_lines:
+            axes[i,i].axvline(pmed[i], color=col_lines, linestyle='--', label='Median')
+            axes[i,i].axvline(plb[i], color=col_lines, linestyle=':', label='%i%% CI' % ci)
+            axes[i,i].axvline(pub[i], color=col_lines, linestyle=':', label='_nolegend_')
+            for yi in range(len(param_names)):
+                for xi in range(yi):
+                    axes[yi,xi].axvline(pmed[xi], color=col_lines, linestyle='--')
+                    axes[yi,xi].axhline(pmed[yi], color=col_lines, linestyle='--')
+                    axes[yi,xi].plot(plb[xi], plb[yi], marker=1, color=col_lines)
+                    axes[yi,xi].plot(plb[xi], plb[yi], marker=2, color=col_lines)
+                    axes[yi,xi].plot(plb[xi], pub[yi], marker=1, color=col_lines)
+                    axes[yi,xi].plot(plb[xi], pub[yi], marker=3, color=col_lines)
+                    axes[yi,xi].plot(pub[xi], plb[yi], marker=0, color=col_lines)
+                    axes[yi,xi].plot(pub[xi], plb[yi], marker=2, color=col_lines)
+                    axes[yi,xi].plot(pub[xi], pub[yi], marker=0, color=col_lines)
+                    axes[yi,xi].plot(pub[xi], pub[yi], marker=3, color=col_lines)
+            fig.legend(('Median', '%i%% CI' % ci), loc='lower center', ncol=2, bbox_to_anchor=(0.55, 0.95), 
+                       fontsize=titsize+len(param_names))
     pdf.savefig(bbox_inches='tight')
     pdf.close()
 
@@ -71,7 +98,7 @@ def get_equal_tailed(data, ci=95):
     ----------------------------------------
     RETURN: lower bound, median, upper bound
     '''
-    low, med, upp = np.percentile(data, [50-ci/2, 50, 50+ci/2], axis=0)
+    low, med, upp = map(np.atleast_1d, np.percentile(data, [50-ci/2, 50, 50+ci/2], axis=0))
     return np.array([low, med, upp])
 
 def best_fit_prof(cube_chain, fit, num='all', seed=None, ci=95):
