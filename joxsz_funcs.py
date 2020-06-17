@@ -271,7 +271,7 @@ class CmptPressure(mb.Cmpt):
         '''        
         pars = {
             'P_0': mb.Param(0.4, minval=0., maxval=20., unit='keV.cm^{-3}'),
-            'a': mb.Param(1.33, minval=0.1, maxval=10., unit='.'),
+            'a': mb.Param(1.33, minval=0.1, maxval=20., unit='.'),
             'b': mb.Param(4.13, minval=0.1, maxval=15., unit='.'),
             'c': mb.Param(0.014, minval=0., maxval=3., unit='.'),
             'r_p': mb.Param(300., minval=100., maxval=3000., unit='kpc')
