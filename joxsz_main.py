@@ -9,7 +9,7 @@ import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (check_emcee, SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, add_param_unit,
 			 Z_defPars, CmptPressure, CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, 
-			 get_sz_like, mylikeFromProfs, getLikelihood, MCMC, mcmc_run, add_backend_attrs)
+			 get_sz_like, mylikeFFZromProfs, getLikelihood, MCMC, mcmc_run, add_backend_attrs)
 from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
 			 frac_gas_prof, frac_gas_plot)
 from types import MethodType
@@ -131,7 +131,7 @@ def main():
 
     # flat metallicity profile
     Z_cmpt = mb.CmptFlat('Z', annuli, defval=Z_solar, minval=0., maxval=1.)
-    Z_cmpt.defPars = MethodType(Z_defPars, Z_cmpt)
+#    Z_cmpt.defPars = MethodType(Z_defPars, Z_cmpt)
 
     # density profile
     ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
