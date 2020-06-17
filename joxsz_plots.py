@@ -7,7 +7,7 @@ from scipy import optimize
 
 font = {'size': 8}
 plt.rc('font', **font)
-plt.sytle.use('classic')
+plt.style.use('classic')
 
 def traceplot(cube_chain, param_names, plotw=20, seed=None, ppp=4, labsize=18., ticksize=10., plotdir='./'):
     '''
