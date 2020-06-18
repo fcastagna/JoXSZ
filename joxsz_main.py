@@ -130,7 +130,7 @@ def main():
 
     # flat metallicity profile
     Z_cmpt = mb.CmptFlat('Z', annuli, defval=Z_solar, minval=0., maxval=1.)
-    Z_cmpt.defPars = Z_defPars
+    Z_cmpt.defPars = MethodType(Z_defPars, Z_cmpt)
 
     # density profile
     ne_cmpt = mb.CmptVikhDensity('ne', annuli, mode='single')
