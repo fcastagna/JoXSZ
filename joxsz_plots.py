@@ -5,9 +5,9 @@ import corner
 from mbproj2.physconstants import keV_erg, kpc_cm, mu_g, G_cgs, solar_mass_g, ne_nH, Mpc_cm, yr_s, mu_e, Mpc_km
 from scipy import optimize
 
-font = {'size': 8}
-plt.rc('font', **font)
 plt.style.use('classic')
+font = {'size': 14}
+plt.rc('font', **font)
 
 def traceplot(cube_chain, param_names, plotw=20, seed=None, ppp=4, labsize=18., ticksize=10., plotdir='./'):
     '''
