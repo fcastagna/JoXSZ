@@ -18,7 +18,7 @@ from types import MethodType
 ## Global and local variables
 
 mystep = 2. # constant sampling step in arcsec for SZ analysis (values higher than (1/3)*FWHM of the SZ beam are not recommended)
-m_e = 0.5109989*1e3 # electron rest mass (keV)
+m_e = 0.5109989*1e3 # electron rest mass (keV/c^2)
 sigma_T = 6.6524587158*1e-25 # Thomson cross section (cm^2)
 R_b = 5000. # Radial cluster extent (kpc), serves as upper bound for Compton y parameter integration
 
