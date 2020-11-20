@@ -204,8 +204,8 @@ def main():
 	mcmc.initspread = .1
 	mcmc_run(mcmc, nburn, nlength, nthin)
         add_backend_attrs(chainfilename, fit, nburn, nthin)
-#    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
-    cube_chain = mcmc.sampler.chain # (nwalkers x niter x nparams)
+#    print('Autocorrelation: %.3f' %np.mean(mcmc.acor))
+    cube_chain = mcmc.chain # (nwalkers x niter x nparams)
     flat_chain = cube_chain.reshape(-1, cube_chain.shape[2], order='F') # ((nwalkers x niter) x nparams)
     mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
 
