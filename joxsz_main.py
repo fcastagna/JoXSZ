@@ -201,8 +201,8 @@ def main():
     with Pool() as pool:
         mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool, backend=backend)	
         mcmc.seed = seed
-	mcmc.initspread = .1
-	mcmc_run(mcmc, nburn, nlength, nthin)
+        mcmc.initspread = .1
+        mcmc_run(mcmc, nburn, nlength, nthin)
         add_backend_attrs(chainfilename, fit, nburn, nthin)
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.acor))
     cube_chain = mcmc.chain # (nwalkers x niter x nparams)
