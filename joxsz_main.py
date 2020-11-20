@@ -199,7 +199,7 @@ def main():
     backend.reset(nwalkers, len(fit.thawedParVals()))
 
     with Pool() as pool:
-        mcmc = MCMC(mc, fit, pool=pool, walkers=nwalkers, backend=backend, seed=seed, initspread=.1)
+        mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool, backend=backend)	
         mcmc_run(mcmc, nburn, nlength, nthin)
         add_backend_attrs(chainfilename, fit, nburn, nthin)
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
