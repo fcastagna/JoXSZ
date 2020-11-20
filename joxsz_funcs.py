@@ -581,7 +581,7 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
     '''
     bestprob = fit.getLikelihood(fit.thawedParVals())
     newlike = bestprob
-    p0 = mcmc._generateInitPars()
+    p0 = _generateInitPars(mcmc, fit)
     print('Preliminary fit (1000 iterations) to improve likelihood')
     while newlike >= bestprob:
         bestprob = newlike
