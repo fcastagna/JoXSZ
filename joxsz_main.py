@@ -207,7 +207,7 @@ def main():
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.acor))
     cube_chain = mcmc.chain # (nwalkers x niter x nparams)
     flat_chain = cube_chain.reshape(-1, cube_chain.shape[2], order='F') # ((nwalkers x niter) x nparams)
-    mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
+    mcmc_thawed = fit.thawed # names of fitted parameters
 
     # Posterior distribution parameters
     param_med = np.median(flat_chain, axis=0)
