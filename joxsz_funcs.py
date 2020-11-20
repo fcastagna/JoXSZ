@@ -551,49 +551,26 @@ def getLikelihood(self, vals=None):
                 mb.utils.uprint("%s = %s" % (p, self.pars[p]), file=fout)
     return totlike
 
-class MCMC:
+def _generateInitPars(mcmc, fit):
     '''
-    Class for running Markov Chain Monte Carlo
-    ------------------------------------------
-    emcee = emcee package
-    fit = Fit object (adapted from MBProj2)
-    pool = pool object for operating on multiple processes
-    backend = backend file for saving the chain
-    walkers = number of random walkers
-    seed = random seed (default is None)
-    initspread = random Gaussian width added to create initial parameters (either scalar or array of same length as fit_pars)
+    Generate initial set of parameters from fit
+    -------------------------------------------
     '''
-    def __init__(self, emcee, fit, pool, backend, walkers=100, seed=None, initspread=0.01):
-        self.fit = fit
-        self.walkers = walkers
-        self.numpars = len(fit.thawed)
-        self.seed = seed
-        self.initspread = initspread
-        # function for getting likelihood
-        likefunc = fit.getLikelihood
-        # for doing the mcmc sampling
-        self.sampler = emcee.EnsembleSampler(walkers, len(fit.thawed), likefunc, pool=pool, backend=backend)
+    thawedpars = np.array(fit.thawedParVals())
+    assert np.all(np.isfinite(thawedpars))
+    # create enough parameters with finite likelihoods
+    p0 = []
+    _ = 0
+    while len(p0) < mcmc.walkers:
+        if mcmc.seed is not None:
+            _ += 1
+            np.random.seed(mcmc.seed*_)
+        p = thawedpars*(1+np.random.normal(0, mcmc.initspread, size=mcmc.ndim))
+        if np.isfinite(fit.getLikelihood(p)):
+            p0.append(p)
+    return p0
 
-    def _generateInitPars(self):
-        '''
-        Generate initial set of parameters from fit
-        -------------------------------------------
-        '''
-        thawedpars = np.array(self.fit.thawedParVals())
-        assert np.all(np.isfinite(thawedpars))
-        # create enough parameters with finite likelihoods
-        p0 = []
-        _ = 0
-        while len(p0) < self.walkers:
-            if self.seed is not None:
-                _ += 1
-                np.random.seed(self.seed*_)
-            p = thawedpars*(1+np.random.normal(0, self.initspread, size=self.numpars))
-            if np.isfinite(self.fit.getLikelihood(p)):
-                p0.append(p)
-        return p0
-
-def mcmc_run(mcmc, nburn, nsteps, nthin=1):
+def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
     '''
     MCMC execution
     --------------
@@ -602,30 +579,30 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1):
     nsteps = number of chain iterations (after burn-in)
     nthin = thinning
     '''
-    bestprob = mcmc.fit.getLikelihood(mcmc.fit.thawedParVals())
+    bestprob = fit.getLikelihood(fit.thawedParVals())
     newlike = bestprob
     p0 = mcmc._generateInitPars()
     print('Preliminary fit (1000 iterations) to improve likelihood')
     while newlike >= bestprob:
         bestprob = newlike
         # 1000 iterations, save only 2
-        for res in mcmc.sampler.sample(p0, thin=500, iterations=1000, progress=True):
+        for res in mcmc.sample(p0, thin=500, iterations=1000, progress=True):
             pass
         # Read best likelihood
-        newlike = mcmc.sampler.backend.get_log_prob()[-1,:].max()
-        p0 = mcmc.sampler.backend.get_chain()[-1,:,:]
-        mcmc.sampler.backend.reset(mcmc.walkers, len(mcmc.fit.thawedParVals()))
+        newlike = mcmc.backend.get_log_prob()[-1,:].max()
+        p0 = mcmc.backend.get_chain()[-1,:,:]
+        mcmc.backend.reset(mcmc.nwalkers, len(fit.thawedParVals()))
     print('Burn-in period')
-    for res in mcmc.sampler.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
+    for res in mcmc.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
         pass
     # Read last value of burn-in as starting value of the chain
-    p1 = mcmc.sampler.backend.get_chain()[-1,:,:]
-    mcmc.sampler.backend.reset(mcmc.walkers, len(mcmc.fit.thawedParVals()))
+    p1 = mcmc.backend.get_chain()[-1,:,:]
+    mcmc.backend.reset(mcmc.walkers, len(fit.thawedParVals()))
     print('Starting sampling')
-    for res in mcmc.sampler.sample(p1, thin=nthin, iterations=nsteps, progress=True):
+    for res in mcmc.sample(p1, thin=nthin, iterations=nsteps, progress=True):
         pass
     print('Finished sampling')
-    print('Acceptance fraction: %s' %np.mean(mcmc.sampler.acceptance_fraction))
+    print('Acceptance fraction: %s' %np.mean(mcmc.acceptance_fraction))
 
 def add_backend_attrs(chainfilename, fit, nburn, nthin):
     '''
