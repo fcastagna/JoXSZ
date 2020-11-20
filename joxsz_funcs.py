@@ -561,7 +561,7 @@ def _generateInitPars(mcmc, fit):
     # create enough parameters with finite likelihoods
     p0 = []
     _ = 0
-    while len(p0) < mcmc.walkers:
+    while len(p0) < mcmc.nwalkers:
         if mcmc.seed is not None:
             _ += 1
             np.random.seed(mcmc.seed*_)
@@ -597,7 +597,7 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
         pass
     # Read last value of burn-in as starting value of the chain
     p1 = mcmc.backend.get_chain()[-1,:,:]
-    mcmc.backend.reset(mcmc.walkers, len(fit.thawedParVals()))
+    mcmc.backend.reset(mcmc.nwalkers, len(fit.thawedParVals()))
     print('Starting sampling')
     for res in mcmc.sample(p1, thin=nthin, iterations=nsteps, progress=True):
         pass
