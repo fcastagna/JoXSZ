@@ -564,9 +564,6 @@ def _generateInitPars(mcmc, fit):
     p0 = []
     _ = 0
     while len(p0) < mcmc.nwalkers:
-        if mcmc.seed is not None:
-            _ += 1
-            np.random.seed(mcmc.seed*_)
         p = thawedpars*(1+np.random.normal(0, mcmc.initspread, size=mcmc.ndim))
         if np.isfinite(fit.getLikelihood(p)):
             p0.append(p)
