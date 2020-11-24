@@ -555,6 +555,8 @@ def _generateInitPars(mcmc, fit):
     '''
     Generate initial set of parameters from fit
     -------------------------------------------
+    mcmc = emcee EnsembleSampler object
+    fit = Fit object (adapted from MBProj2)
     '''
     thawedpars = np.array(fit.thawedParVals())
     assert np.all(np.isfinite(thawedpars))
@@ -574,7 +576,8 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
     '''
     MCMC execution
     --------------
-    mcmc = MCMC object
+    mcmc = emcee EnsembleSampler object
+    fit = Fit object (adapted from MBProj2)
     nburn = number of burn-in iterations
     nsteps = number of chain iterations (after burn-in)
     nthin = thinning
