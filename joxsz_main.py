@@ -199,8 +199,8 @@ def main():
     backend.reset(nwalkers, len(fit.thawedParVals()))
 
     with Pool() as pool:
+	np.random.seed(seed)
         mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool, backend=backend)	
-        mcmc.seed = seed
         mcmc.initspread = .1
         mcmc_run(mcmc, fit, nburn, nlength, nthin)
         add_backend_attrs(chainfilename, fit, nburn, nthin)
