@@ -9,7 +9,7 @@ import mbproj2 as mb
 from scipy.interpolate import interp1d
 from joxsz_funcs import (check_emcee, SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, add_param_unit,
 			 Z_defPars, CmptPressure, CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, 
-			 get_sz_like, mylikeFromProfs, getLikelihood, MCMC, mcmc_run, add_backend_attrs)
+			 get_sz_like, mylikeFromProfs, getLikelihood, mcmc_run, add_backend_attrs)
 from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
 			 frac_gas_prof, frac_gas_plot)
 from types import MethodType
@@ -199,13 +199,15 @@ def main():
     backend.reset(nwalkers, len(fit.thawedParVals()))
 
     with Pool() as pool:
-        mcmc = MCMC(mc, fit, pool=pool, walkers=nwalkers, backend=backend, seed=seed, initspread=.1)
-        mcmc_run(mcmc, nburn, nlength, nthin)
+        np.random.seed(seed)
+        mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool, backend=backend)	
+        mcmc.initspread = .1
+        mcmc_run(mcmc, fit, nburn, nlength, nthin)
         add_backend_attrs(chainfilename, fit, nburn, nthin)
-#    print('Autocorrelation: %.3f' %np.mean(mcmc.sampler.acor))
-    cube_chain = mcmc.sampler.chain # (nwalkers x niter x nparams)
+#    print('Autocorrelation: %.3f' %np.mean(mcmc.acor))
+    cube_chain = mcmc.chain # (nwalkers x niter x nparams)
     flat_chain = cube_chain.reshape(-1, cube_chain.shape[2], order='F') # ((nwalkers x niter) x nparams)
-    mcmc_thawed = mcmc.fit.thawed # names of fitted parameters
+    mcmc_thawed = fit.thawed # names of fitted parameters
 
     # Posterior distribution parameters
     param_med = np.median(flat_chain, axis=0)
