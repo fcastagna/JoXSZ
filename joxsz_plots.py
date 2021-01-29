@@ -394,7 +394,7 @@ def mass_overdens(r_kpc, cosmo, delta=500):
     rho_c = 3.*HZ**2/(8.*np.pi*G_cgs)
     # radius (cm)
     r_cm = r_kpc*kpc_cm   
-    # M(< r_delta) (g*solar masses)
+    # M(< r_delta) (solar masses)
     mass_r_delta = 4/3*np.pi*rho_c*delta*r_cm**3/solar_mass_g
     return mass_r_delta
     
