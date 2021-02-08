@@ -4,30 +4,31 @@
 # so don't worry if it hangs on Fitting
 
 import six.moves.cPickle as pickle
+import astropy.units as u
+from astropy.cosmology import Planck18_arXiv_v2 as cosmology
 import numpy as np
 import mbproj2 as mb
 from scipy.interpolate import interp1d
-from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, add_param_unit, Z_defPars,
+from j_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, add_param_unit, Z_defPars,
 			 CmptPressure, CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like,
                          mylikeFromProfs, getLikelihood, mcmc_run)
-from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
+from j_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
 			 frac_gas_prof, frac_gas_plot)
 from types import MethodType
 
 #################
 ## Global and local variables
 
-mystep = 2. # constant sampling step in arcsec for SZ analysis (values higher than (1/3)*FWHM of the SZ beam are not recommended)
-m_e = 0.5109989*1e3 # electron rest mass (keV/c^2)
-sigma_T = 6.6524587158*1e-25 # Thomson cross section (cm^2)
-R_b = 5000. # Radial cluster extent (kpc), serves as upper bound for Compton y parameter integration
+mystep = 2.*u.arcsec # constant sampling step in arcsec for SZ analysis (values higher than (1/3)*FWHM of the SZ beam are not recommended)
+R_b = 5000.*u.kpc # Radial cluster extent (kpc), serves as upper bound for Compton y parameter integration
 
 # Cluster cosmology
-redshift = 0.888
-cosmology = mb.Cosmology(redshift)
-cosmology.H0 = 67.32 # Hubble's constant (km/s/Mpc)
-cosmology.WM = 0.3158 # matter density
-cosmology.WV = 0.6842 # vacuum density
+z = 0.888
+cosmology.kpc_per_arcsec = cosmology.kpc_proper_per_arcmin(.888).to('kpc arcsec-1')
+cosmology.z = z
+#cosmology.H0 = 67.32 # Hubble's constant (km/s/Mpc)
+#cosmology.WM = 0.3158 # matter density
+#cosmology.WV = 0.6842 # vacuum density
 
 # name for outputs
 name = 'joxsz'
@@ -71,7 +72,7 @@ integ_sig = .36/1e3 # from Planck
 
 # energy bands in eV
 bandEs = [[700, 1000], [1000, 1300], [1300, 1600], [1600, 2000], [2000, 2700], 
-	  [2700, 3400], [3400, 3800], [3800, 4300], [4300, 5000], [5000, 7000]]
+	  [2700, 3400], [3400, 3800], [3800, 4300], [4300, 5000], [5000, 7000]]*u.eV
 
 # Cluster parameters
 NH_1022pcm2 = 0.0183 # absorbing column density in 10^22 cm^(-2) 
@@ -92,34 +93,47 @@ exclude_unphy_mass = True
 
 def main():
     # setting up the elements for SZ data analysis
-    phys_const = [m_e, sigma_T]
+#    phys_const = [m_e, sigma_T]
     kpc_as = cosmology.kpc_per_arcsec # number of kpc per arcsec
-    flux_data = read_xy_err(flux_filename, ncol=3) # radius (arcsec), flux density, statistical error
+    flux_data = read_xy_err(flux_filename, ncol=3, units=[u.arcsec, u.Unit('mJy beam-1'), u.Unit('mJy beam-1')]) # radius, flux density, statistical error
     maxr_data = flux_data[0][-1] # highest radius in the data
     beam_2d, fwhm = mybeam(mystep, maxr_data, approx=beam_approx, filename=beam_filename, normalize=True, fwhm_beam=fwhm_beam)
     mymaxr = (maxr_data+3*fwhm)//mystep*mystep # max radius needed (arcsec)
-    radius = np.arange(0., mymaxr+mystep, mystep) # array of radii in arcsec
+    radius = np.arange(0., (mymaxr+mystep).value, mystep.value)*mystep.unit # array of radii in arcsec
     radius = np.append(-radius[:0:-1], radius) # from positive to entire axis
     sep = radius.size//2 # index of radius 0
-    r_pp = np.arange(mystep*kpc_as, R_b+mystep*kpc_as, mystep*kpc_as) # radius in kpc used to compute the pressure profile
+    r_pp = np.arange((mystep*kpc_as).value, (R_b+mystep*kpc_as).value, (mystep*kpc_as).value)*u.kpc # radius in kpc used to compute the pressure profile
     d_mat = centdistmat(radius*kpc_as) # matrix of distances in kpc centered on 0 with step=mystep
     wn_as, tf = read_tf(tf_filename, approx=tf_approx, loc=loc, scale=scale, c=c) # wave number in arcsec^(-1), transmission
     filtering = filt_image(wn_as, tf, d_mat.shape[0], mystep) # transfer function matrix
-    t_keV, compt_Jy_beam = np.loadtxt(convert_filename, skiprows=1, unpack=True) # Temp-dependent conversion Compton to Jy
-    convert = interp1d(t_keV, 1e3*compt_Jy_beam, 'linear', fill_value='extrapolate')
-    sz_data = SZ_data(phys_const, mystep, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, d_mat, filtering, calc_integ, 
+    conv_data = np.loadtxt(convert_filename, skiprows=1, unpack=True) # Temp-dependent conversion Compton to Jy
+    unit_conv = [u.keV, u.Jy/u.beam]
+    t_keV = (conv_data[0]*unit_conv[0]).to('keV')
+    conv_mJy_beam = (conv_data[1]*unit_conv[1]).to('mJy beam-1')
+    convert = interp1d(t_keV, conv_mJy_beam, 'linear', fill_value='extrapolate')
+    convert.unit = unit_conv
+    sz_data = SZ_data(mystep, kpc_as, convert, flux_data, beam_2d, radius, sep, r_pp, d_mat, filtering, calc_integ, 
 		      integ_mu, integ_sig) 
 
     # remove cache
     mb.xspechelper.deleteFile('countrate_cache.hdf5')
 
     # annuli object contains edges of annuli (one annulus for each X-ray data measurement)
-    annuli = mb.Annuli(getEdges(infgtempl, bandEs), cosmology)
+#    annuli = mb.Annuli(getEdges(infgtempl, bandEs), cosmology)
+    units_fg = [u.arcmin, u.arcmin, u.ct, u.arcmin**2, u.t]
+    units_bg = [u.arcmin, u.Unit(''), u.Unit(''), u.Unit(''), u.Unit('ct arcmin-2 s-1')]
+    annuli = lambda: None
+    edges = getEdges(infgtempl, bandEs, units_fg).to('arcsec')
+    midpt = 0.5*(edges[1:]+edges[:-1])
+    annuli.midpt_kpc = midpt*cosmology.kpc_per_arcsec
+    annuli.nshells = len(edges)-1
+    annuli.ctrate = mb.countrate.CountRate(cosmology)
+    edges_logkpc = np.log10((edges*cosmology.kpc_per_arcsec).value)*u.kpc
 
     # load each X-ray band, chopping outer radius
     bands = []
     for bandE in bandEs:
-        bands.append(loadBand(infgtempl, inbgtempl, bandE, rmf, arf))
+        bands.append(loadBand(infgtempl, inbgtempl, bandE, rmf, arf, units_fg, units_bg))
 
     # Data object represents annuli and bands
     data = mb.Data(bands, annuli)
@@ -158,8 +172,8 @@ def main():
     pars['calibration'] = mb.ParamGaussian(1., prior_mu=1., prior_sigma=0.07)
 
     # stop radii going beyond edge of data
-    pars['log(r_c)'].maxval = annuli.edges_logkpc[-2]
-    pars['log(r_s)'].maxval = annuli.edges_logkpc[-2]
+    pars['log(r_c)'].maxval = (edges_logkpc[-2].to(pars['log(r_c)'].unit)).value
+    pars['log(r_s)'].maxval = (edges_logkpc[-2].to(pars['log(r_s)'].unit)).value
 
     # some ranges of parameters to allow for the density model
     pars[r'\gamma'].val = 3.
