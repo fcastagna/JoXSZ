@@ -46,7 +46,7 @@ def read_beam(filename):
         radius = radius[:first_nan]
         beam_prof = beam_prof[:first_nan]
     if beam_prof.min() < 0.:
-        first_neg = np.where(beam_prof < 0)[0][0]
+        first_neg = np.where(beam_prof < 0.)[0][0]
         radius = radius[:first_neg]
         beam_prof = beam_prof[:first_neg]
     return radius, beam_prof
@@ -484,9 +484,9 @@ def get_sz_like(self, output='ll'):
     chisq = np.nansum(((self.data.sz.flux_data[1]-g(self.data.sz.flux_data[0]))/self.data.sz.flux_data[2])**2)
     log_lik = -chisq/2
     if self.data.sz.calc_integ:
-        cint = simps(np.concatenate((f(0), y), axis=None)*
-                     np.arange(0, self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60), 
-                     np.arange(0, self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60))*2*np.pi
+        cint = simps(np.concatenate((f(0.), y), axis=None)*
+                     np.arange(0., self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60), 
+                     np.arange(0., self.data.sz.r_pp[-1]/self.data.sz.kpc_as/60+self.data.sz.step/60, self.data.sz.step/60))*2*np.pi
         new_chi = np.nansum(((cint-self.data.sz.integ_mu)/self.data.sz.integ_sig)**2)
         log_lik -= new_chi/2
         if output == 'integ':
@@ -532,7 +532,7 @@ def getLikelihood(self, vals=None):
     # X-ray fitted profiles
     profs = self.calcProfiles()
     # X-ray log-likelihood
-    if np.array(profs).min() > 0:
+    if np.array(profs).min() > 0.:
         like = self.mylikeFromProfs(profs)
     else:
         like = -np.inf
@@ -564,7 +564,7 @@ def _generateInitPars(mcmc, fit):
     p0 = []
     _ = 0
     while len(p0) < mcmc.nwalkers:
-        p = thawedpars*(1+np.random.normal(0, mcmc.initspread, size=mcmc.ndim))
+        p = thawedpars*(1+np.random.normal(0., mcmc.initspread, size=mcmc.ndim))
         if np.isfinite(fit.getLikelihood(p)):
             p0.append(p)
     return p0
