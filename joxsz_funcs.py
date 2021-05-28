@@ -627,7 +627,7 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
             p0 = mcmc.pos0
         for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nsteps)):
             if i%10 == 0:
-                print(' Sampling %i / %i (%.1f%%)' %(i, nsteps, i*100/nsteps))----------
+                print(' Sampling %i / %i (%.1f%%)' %(i, nsteps, i*100/nsteps))
     print('Finished sampling')
     print('Acceptance fraction: %s' %np.mean(mcmc.acceptance_fraction))
 
