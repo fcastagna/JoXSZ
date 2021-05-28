@@ -195,12 +195,18 @@ def main():
         pickle.dump(fit, f, -1)
     #
     chainfilename = '%s%s_chain.hdf5' % (savedir, name)
-    backend = mc.backends.HDFBackend(chainfilename)
-    backend.reset(nwalkers, len(fit.thawedParVals()))
-
+    try:
+	backend = mc.backends.HDFBackend(chainfilename)
+        backend.reset(nwalkers, len(fit.thawedParVals()))
+    except:
+	pass
+	
     with Pool() as pool:
         np.random.seed(seed)
-        mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool, backend=backend)	
+        try:
+             mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool, backend=backend)	
+        except:
+             mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool)
         mcmc.initspread = .1
         mcmc_run(mcmc, fit, nburn, nlength, nthin)
         add_backend_attrs(chainfilename, fit, nburn, nthin)
