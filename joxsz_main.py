@@ -5,7 +5,7 @@
 
 import six.moves.cPickle as pickle
 import astropy.units as u
-from astropy.cosmology import Planck18_arXiv_v2 as cosmology
+from astropy.cosmology import FlatLambdaCDM
 import numpy as np
 import mbproj2 as mb
 from scipy.interpolate import interp1d
@@ -23,12 +23,11 @@ mystep = 2.*u.arcsec # constant sampling step in arcsec for SZ analysis (values 
 R_b = 5000.*u.kpc # Radial cluster extent (kpc), serves as upper bound for Compton y parameter integration
 
 # Cluster cosmology
-z = 0.888
-cosmology.kpc_per_arcsec = cosmology.kpc_proper_per_arcmin(.888).to('kpc arcsec-1')
-cosmology.z = z
-#cosmology.H0 = 67.32 # Hubble's constant (km/s/Mpc)
-#cosmology.WM = 0.3158 # matter density
-#cosmology.WV = 0.6842 # vacuum density
+H0 = 70 # Hubble constant at z=0
+Om0 = 0.3 # Omega matter (density of non-relativistic matter)
+z = 0.888 # redshift
+cosmology = FlatLambdaCDM(H0=H0, Om0=Om0)
+kpc_as = cosmology.kpc_proper_per_arcmin(z).to('kpc arcsec-1') # number of kpc per arcsec
 
 # name for outputs
 name = 'joxsz'
@@ -94,7 +93,6 @@ exclude_unphy_mass = True
 def main():
     # setting up the elements for SZ data analysis
 #    phys_const = [m_e, sigma_T]
-    kpc_as = cosmology.kpc_per_arcsec # number of kpc per arcsec
     flux_data = read_xy_err(flux_filename, ncol=3, units=[u.arcsec, u.Unit('mJy beam-1'), u.Unit('mJy beam-1')]) # radius, flux density, statistical error
     maxr_data = flux_data[0][-1] # highest radius in the data
     beam_2d, fwhm = mybeam(mystep, maxr_data, approx=beam_approx, filename=beam_filename, normalize=True, fwhm_beam=fwhm_beam)
