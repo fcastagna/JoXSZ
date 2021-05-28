@@ -628,7 +628,6 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1, autorefit=True, minfrac=0.2, min
         for res in mcmc.sample(p1, thin=nthin, iterations=nsteps, progress=True):
             pass
     except:
-        mcmc.header['length'] = nsteps
         if mcmc.pos0 is None:
             print(' Generating initial parameters')
             p0 = _generateInitPars(mcmc)
