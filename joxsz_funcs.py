@@ -575,7 +575,7 @@ def _generateInitPars(mcmc, fit):
             p0.append(p)
     return p0
 
-def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
+def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1, autorefit=True, minfrac=0.2, minimprove=0.01):
     '''
     MCMC execution
     --------------
@@ -584,6 +584,9 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
     nburn = number of burn-in iterations
     nsteps = number of chain iterations (after burn-in)
     nthin = thinning
+    autorefit = refit position if new minimum is found during burn in (boolean, default is True)
+    minfrac = minimum fraction of burn in to do if new minimum found
+    minimprove = minimum improvement in fit statistic to do a new fit
     '''
     bestprob = fit.getLikelihood(fit.thawedParVals())
     newlike = bestprob
