@@ -209,7 +209,10 @@ def main():
              mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool)
         mcmc.initspread = .1
         mcmc_run(mcmc, fit, nburn, nlength, nthin)
-        add_backend_attrs(chainfilename, fit, nburn, nthin)
+	try:
+            add_backend_attrs(chainfilename, fit, nburn, nthin)
+	except:
+            pass
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.acor))
     cube_chain = mcmc.chain # (nwalkers x niter x nparams)
     flat_chain = cube_chain.reshape(-1, cube_chain.shape[2], order='F') # ((nwalkers x niter) x nparams)
