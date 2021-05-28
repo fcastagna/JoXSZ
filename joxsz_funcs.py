@@ -606,6 +606,7 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1, autorefit=True, minfrac=0.2, min
         for res in mcmc.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
             pass
     except:
+        bestfit = None
         for i, result in enumerate(mcmc.sample(p0, thin=nthin, iterations=nburn, storechain=False)):
             if i%10 == 0:
                 print(' Burn %i / %i (%.1f%%)' %(i, nburn, i*100/nburn))
