@@ -196,10 +196,10 @@ def main():
     #
     chainfilename = '%s%s_chain.hdf5' % (savedir, name)
     try:
-	backend = mc.backends.HDFBackend(chainfilename)
+        backend = mc.backends.HDFBackend(chainfilename)
         backend.reset(nwalkers, len(fit.thawedParVals()))
     except:
-	pass
+        pass
 	
     with Pool() as pool:
         np.random.seed(seed)
@@ -209,9 +209,9 @@ def main():
              mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool)
         mcmc.initspread = .1
         mcmc_run(mcmc, fit, nburn, nlength, nthin)
-	try:
+        try:
             add_backend_attrs(chainfilename, fit, nburn, nthin)
-	except:
+        except:
             pass
 #    print('Autocorrelation: %.3f' %np.mean(mcmc.acor))
     cube_chain = mcmc.chain # (nwalkers x niter x nparams)
