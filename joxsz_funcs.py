@@ -582,25 +582,52 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
     bestprob = fit.getLikelihood(fit.thawedParVals())
     newlike = bestprob
     p0 = _generateInitPars(mcmc, fit)
-    print('Preliminary fit (1000 iterations) to improve likelihood')
-    while newlike >= bestprob:
-        bestprob = newlike
-        # 1000 iterations, save only 2
-        for res in mcmc.sample(p0, thin=500, iterations=1000, progress=True):
+    try:
+        print('Preliminary fit (1000 iterations) to improve likelihood')
+        while newlike >= bestprob:
+            bestprob = newlike
+            # 1000 iterations, save only 2
+            for res in mcmc.sample(p0, thin=500, iterations=1000, progress=True):
+                pass
+            # Read best likelihood
+            newlike = mcmc.backend.get_log_prob()[-1,:].max()
+            p0 = mcmc.backend.get_chain()[-1,:,:]
+            mcmc.backend.reset(mcmc.nwalkers, len(fit.thawedParVals()))
+        print('Burn-in period')
+        for res in mcmc.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
             pass
-        # Read best likelihood
-        newlike = mcmc.backend.get_log_prob()[-1,:].max()
-        p0 = mcmc.backend.get_chain()[-1,:,:]
+    except:
+        for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nburn, storechain=False)):
+            if i%10 == 0:
+                print(' Burn %i / %i (%.1f%%)' %(i, nburn, i*100/nburn))
+            mcmc.pos0, lnprob, rstate0 = result[:3]
+            if lnprob.max()-bestprob > minimprove:
+                bestprob = lnprob.max()
+                maxidx = lnprob.argmax()
+                bestfit = mcmc.pos0[maxidx]
+            if (autorefit and i > nburn*minfrac and bestfit is not None):
+                print('Restarting burn as new best fit has been found (%g > %g)' % (bestprob, initprob))
+                mcmc.fit.updateThawed(bestfit)
+                mcmc.sampler.reset()
+                return False    
+    try:
+        # Read last value of burn-in as starting value of the chain
+        p1 = mcmc.backend.get_chain()[-1,:,:]
         mcmc.backend.reset(mcmc.nwalkers, len(fit.thawedParVals()))
-    print('Burn-in period')
-    for res in mcmc.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
-        pass
-    # Read last value of burn-in as starting value of the chain
-    p1 = mcmc.backend.get_chain()[-1,:,:]
-    mcmc.backend.reset(mcmc.nwalkers, len(fit.thawedParVals()))
-    print('Starting sampling')
-    for res in mcmc.sample(p1, thin=nthin, iterations=nsteps, progress=True):
-        pass
+        print('Starting sampling')
+        for res in mcmc.sample(p1, thin=nthin, iterations=nsteps, progress=True):
+            pass
+    except:
+        mcmc.header['length'] = nsteps
+        if mcmc.pos0 is None:
+            print(' Generating initial parameters')
+            p0 = _generateInitPars(mcmc)
+        else:
+            print(' Starting from end of burn-in position')
+            p0 = mcmc.pos0
+        for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nsteps)):
+            if i%10 == 0:
+                print(' Sampling %i / %i (%.1f%%)' %(i, nsteps, i*100/nsteps))----------
     print('Finished sampling')
     print('Acceptance fraction: %s' %np.mean(mcmc.acceptance_fraction))
 
