@@ -15,7 +15,7 @@ from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_ra
 from types import MethodType
 import emcee as mc
 from multiprocessing import Pool
-check_emcee(mc)
+#check_emcee(mc)
 
 #################
 ## Global and local variables
