@@ -123,10 +123,10 @@ def main():
     annuli = lambda: None
     edges = getEdges(infgtempl, bandEs, units_fg).to('arcsec')
     midpt = 0.5*(edges[1:]+edges[:-1])
-    annuli.midpt_kpc = midpt*cosmology.kpc_per_arcsec
+    annuli.midpt_kpc = midpt*kpc_as
     annuli.nshells = len(edges)-1
     annuli.ctrate = mb.countrate.CountRate(cosmology)
-    edges_logkpc = np.log10((edges*cosmology.kpc_per_arcsec).value)*u.kpc
+    edges_logkpc = np.log10((edges*kpc_as).value)*u.kpc
 
     # load each X-ray band, chopping outer radius
     bands = []
