@@ -603,7 +603,7 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
         for res in mcmc.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
             pass
     except:
-        for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nburn, storechain=False)):
+        for i, result in enumerate(mcmc.sample(p0, thin=nthin, iterations=nburn, storechain=False)):
             if i%10 == 0:
                 print(' Burn %i / %i (%.1f%%)' %(i, nburn, i*100/nburn))
             mcmc.pos0, lnprob, rstate0 = result[:3]
@@ -614,7 +614,7 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
             if (autorefit and i > nburn*minfrac and bestfit is not None):
                 print('Restarting burn as new best fit has been found (%g > %g)' % (bestprob, initprob))
                 mcmc.fit.updateThawed(bestfit)
-                mcmc.sampler.reset()
+                mcmc.reset()
                 return False    
     try:
         # Read last value of burn-in as starting value of the chain
@@ -631,7 +631,7 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
         else:
             print(' Starting from end of burn-in position')
             p0 = mcmc.pos0
-        for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nsteps)):
+        for i, result in enumerate(mcmc.sample(p0, thin=nthin, iterations=nsteps)):
             if i%10 == 0:
                 print(' Sampling %i / %i (%.1f%%)' %(i, nsteps, i*100/nsteps))
     print('Finished sampling')
