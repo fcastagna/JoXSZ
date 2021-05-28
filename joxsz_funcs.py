@@ -581,19 +581,33 @@ def mcmc_run(mcmc, nburn, nsteps, nthin=1, comp_time=True, autorefit=True, minfr
         bestprob = initprob = mcmc.fit.getLikelihood(mcmc.fit.thawedParVals())
         p0 = _generateInitPars(mcmc)
         mcmc.header['burn'] = nburn
-        for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nburn, storechain=False)):
-            if i%10 == 0:
-                print(' Burn %i / %i (%.1f%%)' %(i, nburn, i*100/nburn))
-            mcmc.pos0, lnprob, rstate0 = result[:3]
-            if lnprob.max()-bestprob > minimprove:
-                bestprob = lnprob.max()
-                maxidx = lnprob.argmax()
-                bestfit = mcmc.pos0[maxidx]
-            if (autorefit and i > nburn*minfrac and bestfit is not None):
-                print('Restarting burn as new best fit has been found (%g > %g)' % (bestprob, initprob))
-                mcmc.fit.updateThawed(bestfit)
-                mcmc.sampler.reset()
-                return False
+        try:
+            for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nburn, storechain=False)):
+                if i%10 == 0:
+                    print(' Burn %i / %i (%.1f%%)' %(i, nburn, i*100/nburn))
+                mcmc.pos0, lnprob, rstate0 = result[:3]
+                if lnprob.max()-bestprob > minimprove:
+                    bestprob = lnprob.max()
+                    maxidx = lnprob.argmax()
+                    bestfit = mcmc.pos0[maxidx]
+                if (autorefit and i > nburn*minfrac and bestfit is not None):
+                    print('Restarting burn as new best fit has been found (%g > %g)' % (bestprob, initprob))
+                    mcmc.fit.updateThawed(bestfit)
+                    mcmc.sampler.reset()
+                    return False
+        except:
+            for i, result in enumerate(mcmc.sampler.sample(p0, thin=nthin, iterations=nburn, progress=True)):
+                mcmc.pos0 = result.coords
+                lnprob = result.log_prob
+                if lnprob.max()-bestprob > minimprove:
+                    bestprob = lnprob.max()
+                    maxidx = lnprob.argmax()
+                    bestfit = mcmc.pos0[maxidx]
+                if (autorefit and i > nburn*minfrac and bestfit is not None):
+                    print('Restarting burn as new best fit has been found (%g > %g)' % (bestprob, initprob))
+                    mcmc.fit.updateThawed(bestfit)
+                    mcmc.sampler.reset()
+                    return False
         mcmc.sampler.reset()
         return True
     time0 = time.time()
