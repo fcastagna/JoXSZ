@@ -563,8 +563,14 @@ def _generateInitPars(mcmc, fit):
     # create enough parameters with finite likelihoods
     p0 = []
     _ = 0
-    while len(p0) < mcmc.nwalkers:
-        p = thawedpars*(1+np.random.normal(0., mcmc.initspread, size=mcmc.ndim))
+    try:
+        walks = mcmc.nwalkers
+        dim = mcmc.ndim
+    except:
+        walks = mcmc.k
+        dim = mcmc.dim
+    while len(p0) < walks:
+        p = thawedpars*(1+np.random.normal(0., mcmc.initspread, size=dim))
         if np.isfinite(fit.getLikelihood(p)):
             p0.append(p)
     return p0
