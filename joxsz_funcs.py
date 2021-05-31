@@ -11,15 +11,6 @@ from scipy.fftpack import fft2, ifft2
 from scipy.integrate import simps
 import h5py
 
-def check_emcee(emcee):
-    '''
-    Check that you are using version 3 of the emcee package
-    -------------------------------------------------------
-    RETURN: nothing, unless you are using an older version
-    '''
-    vers = emcee.__version__
-    if int(vers[0]) < 3:
-        raise ImportError('Emcee 3 version is required. Please update the package')
 
 def read_xy_err(filename, ncol):
     '''
