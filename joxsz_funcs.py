@@ -224,11 +224,13 @@ def add_param_unit():
             self.val, self.minval, self.maxval, self.unit, self.frozen)
     mb.Param.__init__ = param_new_init
     mb.Param.__repr__ = param_new_repr    
-    def pargau_new_init(self, val, prior_mu, prior_sigma, unit='.', frozen=False):
+    def pargau_new_init(self, val, prior_mu, prior_sigma, unit='.', frozen=False, minval=None, maxval=None):
         mb.ParamBase.__init__(self, val, frozen=frozen)
         self.prior_mu = prior_mu
         self.prior_sigma = prior_sigma
-        self.unit = unit        
+        self.unit = unit
+        self.minval = minval
+        self.maxval = maxval
     def pargau_new_repr(self):
         return '<ParamGaussian: val=%.3g, prior_mu=%.3g, prior_sigma=%.3g, unit=%s, frozen=%s>' % (
             self.val, self.prior_mu, self.prior_sigma, self.unit, self.frozen)    
