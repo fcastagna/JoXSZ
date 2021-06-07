@@ -7,15 +7,13 @@ import six.moves.cPickle as pickle
 import numpy as np
 import mbproj2 as mb
 from scipy.interpolate import interp1d
-from joxsz_funcs import (check_emcee, SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, add_param_unit,
-			 Z_defPars, CmptPressure, CmptUPPTemperature, CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, 
-			 get_sz_like, mylikeFromProfs, getLikelihood, mcmc_run, add_backend_attrs)
-from joxsz_plots import (traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, 
-			 frac_gas_prof, frac_gas_plot)
+from joxsz_funcs import (SZ_data, read_xy_err, mybeam, centdistmat, read_tf, filt_image, getEdges, loadBand, add_param_unit, Z_defPars, CmptPressure, CmptUPPTemperature, 
+			 CmptMyMass, mydens_defPars, mydens_vikhFunction, mydens_prior, get_sz_like, mylikeFromProfs, getLikelihood, mcmc_run, add_backend_attrs, 
+			 addCountCache)
+from joxsz_plots import traceplot, triangle, best_fit_prof, fitwithmod, comp_rad_profs, plot_rad_profs, comp_mass_prof, mass_plot, frac_gas_prof, frac_gas_plot
 from types import MethodType
 import emcee as mc
 from multiprocessing import Pool
-check_emcee(mc)
 
 #################
 ## Global and local variables
@@ -188,6 +186,7 @@ def main():
     mb.Fit.get_sz_like = MethodType(get_sz_like, fit)
     mb.Fit.getLikelihood = MethodType(getLikelihood, fit)
     mb.Fit.mylikeFromProfs = MethodType(mylikeFromProfs, fit)
+    mb.countrate.CountRate.addCountCache = MethodType(addCountCache, fit.data.annuli.ctrate)
     #
     fit.doFitting()
     # save best fit
@@ -195,12 +194,18 @@ def main():
         pickle.dump(fit, f, -1)
     #
     chainfilename = '%s%s_chain.hdf5' % (savedir, name)
-    backend = mc.backends.HDFBackend(chainfilename)
-    backend.reset(nwalkers, len(fit.thawedParVals()))
-
+    try:
+        backend = mc.backends.HDFBackend(chainfilename)
+        backend.reset(nwalkers, len(fit.thawedParVals()))
+    except:
+        pass
+	
     with Pool() as pool:
         np.random.seed(seed)
-        mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool, backend=backend)	
+        try:
+             mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool, backend=backend)	
+        except:
+             mcmc = mc.EnsembleSampler(nwalkers, len(fit.thawed), fit.getLikelihood, pool=pool)
         mcmc.initspread = .1
         mcmc_run(mcmc, fit, nburn, nlength, nthin)
         add_backend_attrs(chainfilename, fit, nburn, nthin)

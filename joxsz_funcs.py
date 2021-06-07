@@ -10,16 +10,8 @@ from scipy.signal import fftconvolve
 from scipy.fftpack import fft2, ifft2
 from scipy.integrate import simps
 import h5py
+import os
 
-def check_emcee(emcee):
-    '''
-    Check that you are using version 3 of the emcee package
-    -------------------------------------------------------
-    RETURN: nothing, unless you are using an older version
-    '''
-    vers = emcee.__version__
-    if int(vers[0]) < 3:
-        raise ImportError('Emcee 3 version is required. Please update the package')
 
 def read_xy_err(filename, ncol):
     '''
@@ -233,11 +225,13 @@ def add_param_unit():
             self.val, self.minval, self.maxval, self.unit, self.frozen)
     mb.Param.__init__ = param_new_init
     mb.Param.__repr__ = param_new_repr    
-    def pargau_new_init(self, val, prior_mu, prior_sigma, unit='.', frozen=False):
+    def pargau_new_init(self, val, prior_mu, prior_sigma, unit='.', frozen=False, minval=None, maxval=None):
         mb.ParamBase.__init__(self, val, frozen=frozen)
         self.prior_mu = prior_mu
         self.prior_sigma = prior_sigma
-        self.unit = unit        
+        self.unit = unit
+        self.minval = minval
+        self.maxval = maxval
     def pargau_new_repr(self):
         return '<ParamGaussian: val=%.3g, prior_mu=%.3g, prior_sigma=%.3g, unit=%s, frozen=%s>' % (
             self.val, self.prior_mu, self.prior_sigma, self.unit, self.frozen)    
@@ -563,13 +557,19 @@ def _generateInitPars(mcmc, fit):
     # create enough parameters with finite likelihoods
     p0 = []
     _ = 0
-    while len(p0) < mcmc.nwalkers:
-        p = thawedpars*(1+np.random.normal(0., mcmc.initspread, size=mcmc.ndim))
+    try:
+        walks = mcmc.nwalkers
+        dim = mcmc.ndim
+    except:
+        walks = mcmc.k
+        dim = mcmc.dim
+    while len(p0) < walks:
+        p = thawedpars*(1+np.random.normal(0., mcmc.initspread, size=dim))
         if np.isfinite(fit.getLikelihood(p)):
             p0.append(p)
     return p0
 
-def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
+def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1, autorefit=True, minfrac=0.2, minimprove=0.01):
     '''
     MCMC execution
     --------------
@@ -578,29 +578,59 @@ def mcmc_run(mcmc, fit, nburn, nsteps, nthin=1):
     nburn = number of burn-in iterations
     nsteps = number of chain iterations (after burn-in)
     nthin = thinning
+    autorefit = refit position if new minimum is found during burn in (boolean, default is True)
+    minfrac = minimum fraction of burn in to do if new minimum found
+    minimprove = minimum improvement in fit statistic to do a new fit
     '''
     bestprob = fit.getLikelihood(fit.thawedParVals())
     newlike = bestprob
     p0 = _generateInitPars(mcmc, fit)
-    print('Preliminary fit (1000 iterations) to improve likelihood')
-    while newlike >= bestprob:
-        bestprob = newlike
-        # 1000 iterations, save only 2
-        for res in mcmc.sample(p0, thin=500, iterations=1000, progress=True):
+    try:
+        print('Preliminary fit (1000 iterations) to improve likelihood')
+        while newlike >= bestprob:
+            bestprob = newlike
+            # 1000 iterations, save only 2
+            for res in mcmc.sample(p0, thin=500, iterations=1000, progress=True):
+                pass
+            # Read best likelihood
+            newlike = mcmc.backend.get_log_prob()[-1,:].max()
+            p0 = mcmc.backend.get_chain()[-1,:,:]
+            mcmc.backend.reset(mcmc.nwalkers, len(fit.thawedParVals()))
+        print('Burn-in period')
+        for res in mcmc.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
             pass
-        # Read best likelihood
-        newlike = mcmc.backend.get_log_prob()[-1,:].max()
-        p0 = mcmc.backend.get_chain()[-1,:,:]
+    except:
+        bestfit = None
+        for i, result in enumerate(mcmc.sample(p0, thin=nthin, iterations=nburn, storechain=False)):
+            if i%10 == 0:
+                print(' Burn %i / %i (%.1f%%)' %(i, nburn, i*100/nburn))
+            mcmc.pos0, lnprob, rstate0 = result[:3]
+            if lnprob.max()-bestprob > minimprove:
+                bestprob = lnprob.max()
+                maxidx = lnprob.argmax()
+                bestfit = mcmc.pos0[maxidx]
+            if (autorefit and i > nburn*minfrac and bestfit is not None):
+                print('Restarting burn as new best fit has been found (%g > %g)' % (bestprob, initprob))
+                mcmc.fit.updateThawed(bestfit)
+                mcmc.reset()
+                return False    
+    try:
+        # Read last value of burn-in as starting value of the chain
+        p1 = mcmc.backend.get_chain()[-1,:,:]
         mcmc.backend.reset(mcmc.nwalkers, len(fit.thawedParVals()))
-    print('Burn-in period')
-    for res in mcmc.sample(p0, thin=nburn//2, iterations=nburn, progress=True):
-        pass
-    # Read last value of burn-in as starting value of the chain
-    p1 = mcmc.backend.get_chain()[-1,:,:]
-    mcmc.backend.reset(mcmc.nwalkers, len(fit.thawedParVals()))
-    print('Starting sampling')
-    for res in mcmc.sample(p1, thin=nthin, iterations=nsteps, progress=True):
-        pass
+        print('Starting sampling')
+        for res in mcmc.sample(p1, thin=nthin, iterations=nsteps, progress=True):
+            pass
+    except:
+        if mcmc.pos0 is None:
+            print(' Generating initial parameters')
+            p0 = _generateInitPars(mcmc)
+        else:
+            print(' Starting from end of burn-in position')
+            p0 = mcmc.pos0
+        for i, result in enumerate(mcmc.sample(p0, thin=nthin, iterations=nsteps)):
+            if i%10 == 0:
+                print(' Sampling %i / %i (%.1f%%)' %(i, nsteps, i*100/nsteps))
     print('Finished sampling')
     print('Acceptance fraction: %s' %np.mean(mcmc.acceptance_fraction))
 
@@ -618,3 +648,34 @@ def add_backend_attrs(chainfilename, fit, nburn, nthin):
     f['mcmc'].attrs['burn'] = nburn
     f['mcmc'].attrs['thin'] = nthin
     f.close()
+
+def addCountCache(self, key):
+    '''
+    Updated version of the MBProj2 function
+    '''
+    minenergy_keV, maxenergy_keV, z, NH_1022, rmf, arf = key
+    if not os.path.exists(rmf):
+        raise RuntimeError('RMF %s does not exist' % rmf)
+    hdffile = 'countrate_cache.hdf5'
+    with mb.utils.WithLock(hdffile + '.lockdir') as lock:
+        textkey = '_'.join(str(x) for x in key).replace('/', '@')
+        with h5py.File(hdffile, 'w') as f:
+            if textkey not in f:
+                xspec = mb.xspechelper.XSpecHelper()
+                xspec.changeResponse(rmf, arf, minenergy_keV, maxenergy_keV)
+                allZresults = []
+                for Z_solar in (0., 1.):
+                    Zresults = []
+                    for Tlog in mb.countrate.CountRate.Tlogvals:
+                        countrate = xspec.getCountsPerSec(
+                           NH_1022, np.exp(Tlog), Z_solar, self.cosmo, 1.)
+                        Zresults.append(countrate)
+                    Zresults = np.array(Zresults)
+                    Zresults[Zresults < 1e-300] = 1e-300
+                    allZresults.append(Zresults)
+                xspec.finish()
+                allZresults = np.array(allZresults)
+                f[textkey] = allZresults
+            allZresults = np.array(f[textkey])
+    results = (np.log(allZresults[0]), np.log(allZresults[1]))
+    self.ctcache[key] = results
