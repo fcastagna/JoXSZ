@@ -10,6 +10,7 @@ from scipy.signal import fftconvolve
 from scipy.fftpack import fft2, ifft2
 from scipy.integrate import simps
 import h5py
+import os
 
 
 def read_xy_err(filename, ncol):
@@ -647,3 +648,34 @@ def add_backend_attrs(chainfilename, fit, nburn, nthin):
     f['mcmc'].attrs['burn'] = nburn
     f['mcmc'].attrs['thin'] = nthin
     f.close()
+
+def addCountCache(self, key):
+    '''
+    Updated version of the MBProj2 function
+    '''
+    minenergy_keV, maxenergy_keV, z, NH_1022, rmf, arf = key
+    if not os.path.exists(rmf):
+        raise RuntimeError('RMF %s does not exist' % rmf)
+    hdffile = 'countrate_cache.hdf5'
+    with mb.utils.WithLock(hdffile + '.lockdir') as lock:
+        textkey = '_'.join(str(x) for x in key).replace('/', '@')
+        with h5py.File(hdffile, 'w') as f:
+            if textkey not in f:
+                xspec = mb.xspechelper.XSpecHelper()
+                xspec.changeResponse(rmf, arf, minenergy_keV, maxenergy_keV)
+                allZresults = []
+                for Z_solar in (0., 1.):
+                    Zresults = []
+                    for Tlog in mb.countrate.CountRate.Tlogvals:
+                        countrate = xspec.getCountsPerSec(
+                           NH_1022, np.exp(Tlog), Z_solar, self.cosmo, 1.)
+                        Zresults.append(countrate)
+                    Zresults = np.array(Zresults)
+                    Zresults[Zresults < 1e-300] = 1e-300
+                    allZresults.append(Zresults)
+                xspec.finish()
+                allZresults = np.array(allZresults)
+                f[textkey] = allZresults
+            allZresults = np.array(f[textkey])
+    results = (np.log(allZresults[0]), np.log(allZresults[1]))
+    self.ctcache[key] = results
