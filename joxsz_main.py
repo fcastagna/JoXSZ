@@ -186,7 +186,7 @@ def main():
     mb.Fit.get_sz_like = MethodType(get_sz_like, fit)
     mb.Fit.getLikelihood = MethodType(getLikelihood, fit)
     mb.Fit.mylikeFromProfs = MethodType(mylikeFromProfs, fit)
-    mb.countrate.CountRate.addCountCache = MethodType(addCountCache, fit.data.annuli.ctrate)
+    #mb.countrate.CountRate.addCountCache = MethodType(addCountCache, fit.data.annuli.ctrate)
     #
     fit.doFitting()
     # save best fit
